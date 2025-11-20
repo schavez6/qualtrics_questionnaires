@@ -1,0 +1,84 @@
+Get Survey Date info
+```{r}
+survey_startdate<-filter(cleaned_survey_data, grepl("StartDate",item)) %>%
+  filter(!survey_name=="Sharing Task Experience Survey") %>%
+  mutate(startdate=as.Date(value),
+         survey_type=ifelse(grepl("(Sess 1|W[123456]S1)",survey_name),"Sess 1",
+                            ifelse(grepl("(Sess 2|W[123456]S2)",survey_name),"Sess 2",
+                                   ifelse(grepl("Parent",survey_name),"Parent",
+                                          ifelse(grepl("Home",survey_name),"Home",
+                                                 ifelse(grepl("in-lab",survey_name),"Sess 2",
+                                                        ifelse(grepl("Daily",survey_name),"DSR",
+                                                               ifelse(grepl("ACE",survey_name),"ACE", 
+                                                                      
+            ifelse(grepl("KSADS-PL - W[123456]", survey_name),"KSADS", 
+                    ifelse(grepl("KSADS-PL - TAG2 W[123] FOR DATA", survey_name),"KSADS", 
+                           ifelse(grepl("SOS", survey_name), "SOS", NA))))))))))) %>%
+  dplyr::select(-value,-item) %>%
+  #dplyr::select(-value,-item,-StartDate) %>%
+  # filter(!survey_type=="Parent") %>%
+  dplyr::arrange(startdate)
+
+survey_originaldate<-filter(cleaned_survey_data, grepl("original.date.timestamp",item)) %>%
+  filter(!survey_name=="Sharing Task Experience Survey") %>%
+  filter(!value=="") %>%
+  mutate(originaldate=as.Date(value),
+         survey_type=ifelse(grepl("Sess 1|W[123456]S1",survey_name),"Sess 1",
+                            ifelse(grepl("Sess 2|W[123456]S2",survey_name),"Sess 2",
+                                   ifelse(grepl("in-lab",survey_name),"Sess 2",
+                                   ifelse(grepl("Parent",survey_name),"Parent",
+                                          ifelse(grepl("Home",survey_name),"Home",
+                                                 ifelse(grepl("SOS",survey_name),"SOS",
+                                                        ifelse(grepl("ACE",survey_name),"ACE",NA
+                                                        )))))))) %>%
+  dplyr::select(-value,-item) %>%
+  # filter(!survey_type=="Parent") %>%
+  dplyr::arrange(originaldate)
+
+survey_date<-left_join(survey_startdate, survey_originaldate) %>%
+  mutate(value=as.Date(ifelse(is.na(startdate),originaldate,startdate),origin="1970-01-01 UTC")) %>%
+  dplyr::select(-originaldate,-startdate)
+
+survey_date_sorted <- survey_date %>%
+  mutate(tagid_sorted = factor(tagid, levels = unique(tagid[order(value)])))
+
+graph_dates<-ggplot(survey_date_sorted, aes(x=value, y=tagid_sorted, group=tagid)) +
+  geom_line(colour="black", alpha=.5) +
+  geom_point(aes(colour = survey_type)) +
+  scale_x_date(date_breaks = "1 month", date_labels =  "%b %Y") +
+  theme_minimal() + 
+  theme(axis.text.y=element_blank(),
+        axis.text.x = element_text(hjust = 0, angle = 360-45))
+graph_dates
+
+timebetween=function(subid){
+  tag_id <- as.character(subid)
+  start <- strptime((survey_date %>%
+                       filter(tagid==tag_id) %>%
+                       filter(survey_type=="Sess 1") %>%
+                       select(value) %>%
+                       arrange(value))[[1]][[1]], format="%Y - %m - %d") 
+  if (nrow(survey_date %>%
+           filter(tagid==tag_id) %>%
+           filter(survey_type=="Sess 2"))>0) {
+    end <- strptime((survey_date %>%
+                       filter(tagid==tag_id) %>%
+                       filter(survey_type=="Sess 2") %>%
+                       select(value) %>%
+                       arrange(desc(value)))[[1]][[1]], format="%Y - %m - %d")
+    totaldays<-(end-start)
+  } else {
+    end <- "NA"
+    totaldays<-"NA"
+  }
+  as.data.frame(cbind(tag_id, totaldays))
+}
+#output.df<-lapply(as.list(unique(survey_date$tagid)),timebetween) ##NV: NOT WORKING, BUT SEEMINGLY ONLY RELEVANT FOR PLOTTING TIME DIFFERENCE
+#output.df<-as.data.frame(do.call(rbind,output.df)) %>% 
+#  mutate(totaldays=round(as.numeric(levels(totaldays))[totaldays]),0)
+#time_between <- ggplot(output.df,
+#                       aes(x=tag_id, y=totaldays, fill=totaldays))
+#time_between + geom_bar(colour="black", stat="identity")
+
+#rm(time_between,graph_dates)
+```
