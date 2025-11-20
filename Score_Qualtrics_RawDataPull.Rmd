@@ -1,0 +1,280 @@
+---
+title: "Score_Qualtrics_RawDataPull"
+author: "SJC"
+date: "20-Nov-2025"
+output: html_document
+---
+
+Set working directory
+```{r Set Directory, message=FALSE, warning=FALSE, include=FALSE}
+getwd()
+#You should set this to the behavioral directory on the TAG file server 
+workdir='I:/dsnlab/TAG/data/' #different for macs
+
+#Set this to the path of the credentials file.
+#credsFile<-'~/data/TAG/Questionnaires/Confidential/credentials.yaml.DEFAULT'
+credsFile<-file.path(workdir,"Qualtrics_Output/RDOC/Confidential/credentials.yaml.DEFAULT", fsep="")
+```
+
+Load required packages
+```{r Load packages, message=FALSE, warning=FALSE, include=FALSE}
+## Load required packages ##
+packages <- c("lme4", "nlme", "ggplot2", "dplyr", "tidyr", "knitr",
+              "parallel", "data.table", "lubridate","xml2","devtools",
+              "stringr","psych")
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(packages, rownames(installed.packages())))  
+}
+lapply(packages, library, character.only = TRUE)
+install_github("jflournoy/scorequaltrics")
+library("scorequaltrics")
+rm(packages)
+```
+
+Extract qualtrics data from website
+```{r Extract Qualtrics, message=FALSE, warning=FALSE, include=FALSE}
+
+creds <- creds_from_file(credsFile)
+
+exclude_survey=c("NV",
+                 "GUT",
+                 "TEST",
+                 "Appointment",
+                 "Newsletter",
+                 #"SOS",
+                 "Sharing Task",
+                 "PMS Interest",
+                 "Checklist",
+                 "Consent",
+                 "Assent",
+                 "Training",
+                 "Double",
+                 "Confirmation",
+                 "This is Me",
+                 #"ACE",
+                 "DOUBLE",
+                 "KidCOPE",
+                 "Untitled Project",
+                 "COVID",
+                 #"Daily", #add back in for dsr data pulls
+                 "Saliva",
+                 "Contact",
+                 "Participation",
+                 "Opportunities",
+                 "Bank",
+                 "saliva sample",
+                 "Smartphone",
+                 "Check In",
+                 "FP",
+                 "Unsubscribe",
+                 "TIM")
+                 #"TAG - Sess 2 - V3 - minus CTQ",
+                 #"W4 Home Q's - PAST V3",
+                 #"W4 Home Q's - PAST V2",
+                 #"TAG - Sess 2 - V3 for Home - (SSDS_2 and on)",
+                 #"W2 - Home Qs - Current V2 IN LAB")
+
+#get_surveys gets a list of alll the surveys, so we will exclude those we don't want (in the list above).
+survey_info <- scorequaltrics::get_surveys(creds) %>% 
+  filter(!grepl(paste0(exclude_survey, collapse="|"), SurveyName)) %>% #not sure why this is necessary but it does seem to help?
+  filter(!SurveyName %in% exclude_survey) %>%
+  # filter(grepl('TAG', SurveyName)) %>%
+  dplyr::select(id, SurveyName)
+
+raw_survey_data <- get_survey_data(survey_info, pid_cols=c("RecipientLastName", "SID_embed", "SID", "Q343")) #use for everything except dsr
+
+#raw_survey_data <- get_survey_data(survey_info, pid_cols=c("RecipientLastName", "SID_embed", "SID", "Q343", "StartDate")) #use for daily data
+
+#Need to do a little cleaning before we do anything else.
+raw_survey_data[RecipientLastName == "Monte", SID := 244] #SJC updated
+raw_survey_data[RecipientLastName == "Mercurio", SID := 034] #SJC updated
+raw_survey_data[RecipientLastName == "Holland", SID := 006] #SJC updated
+raw_survey_data[RecipientLastName == "Estess", SID := 089] #SJC updated
+raw_survey_data[RecipientLastName == "Espy", SID := 011] #SJC updated
+raw_survey_data[RecipientLastName == "Sheppeard", SID := 141] #SJC updated
+raw_survey_data[RecipientLastName == "Martin", SID := 097] #SJC updated
+raw_survey_data[RecipientLastName == "Robbins", SID := 138] #SJC updated
+raw_survey_data[RecipientLastName == "Ramsdal", SID := 084] #SJC updated
+raw_survey_data[RecipientLastName == "Ziemer", SID := 068] #SJC updated
+raw_survey_data[RecipientLastName == "Dannielle Sanchez", SID := 102] #SJC updated
+raw_survey_data[RecipientLastName == "Trueblood", SID := 144] #SJC updated
+raw_survey_data[RecipientLastName == "Davis", SID := 054] #SJC updated
+raw_survey_data[RecipientLastName == "Dillon", SID := 044] #SJC updated
+raw_survey_data[RecipientLastName == "Lopez", SID := 100] #SJC updated
+raw_survey_data[RecipientLastName == "Morikawa", SID := 056] #SJC updated
+raw_survey_data[RecipientLastName == "McCan", SID := 012] #SJC updated
+raw_survey_data[SID == 255, SID := 225] #SJC updated
+#raw_survey_data[SID == "SV_eqvWqPtsOO4uqPP", SID := NA] #SJC updated #Not strictly necessary since `fix_ids` would do this too. #This deletes real data... 
+
+#save raw data to check
+reallyraw <- raw_survey_data
+
+#For fixing User IDs, I added a function to scorequaltrics,
+#`scorequaltrics::fix_ids`. The help and the example below should be pretty self
+#explanatory.
+raw_survey_data$SID <- scorequaltrics::fix_ids(raw_survey_data, pid_cols=c("RecipientLastName", "SID_embed", "SID", "Q343"), 
+                                               prefix = '[Tt][Aa][Gg]', #Case insensitive for TAG
+                                               format_ids = 'TAG%03d')  
+
+#For fixing the dates, It's a little more straightforward and not generalizable,
+#so heres what I've done. Essentially, first we _try_ to convert each date to a
+#number. If it turns into an NA, we know that it is a character and so is likely
+#a data formatted as expected. If it successfully is converted we know it's
+#probably a unix timestamp. We can then convert the unix timestamps into
+#readable dates using the lubridate package. I did write a small function to
+#convert a character unix time stamp to a date.
+convert_unixtime_to_ymd_hms <- function(x){
+  return(as.character(
+    lubridate::ymd_hms(
+      lubridate::as_datetime(
+        as.numeric(x)))))
+}
+raw_survey_data[grepl('[dD]ate', item), value := fifelse(is.na(as.numeric(value)), 
+                                                         value,
+                                                         convert_unixtime_to_ymd_hms(value))]
+
+#Handle numeric missing values
+long_survey_data <- raw_survey_data %>% 
+  mutate(value = ifelse(value == -99, NA, value))
+  
+embedded_qs <- survey_info %>% 
+  filter(SurveyName %in% c("TAG - Home Qs - V3 - with SID embedded", 
+                           "TAG - W1 Home Qs - Current V4")) 
+sortbyqid_data <- get_survey_data(embedded_qs, pid_cols = "ResponseId") %>% 
+  mutate(value = ifelse(value == -99, NA, value))
+
+rm(creds,credsFile)
+```
+
+More cleaning...
+
+```{r Clean qualtrics, message=FALSE, warning=FALSE, include=FALSE}
+#long_survey_data should already be a data table, but just making sure:
+cleaned_survey_data <- as.data.table(long_survey_data) %>% dplyr::select(SID, item, value, survey_name) #use for everything except dsr
+
+#cleaned_survey_data <- as.data.table(long_survey_data) %>% dplyr::select(SID, item, value, survey_name, StartDate) #use for daily surveys
+
+setnames(cleaned_survey_data, old = 'SID', new = 'tagid')
+
+cleaned_survey_data <- cleaned_survey_data[!(tagid %in% c('TAG000', 'TAG999', 'TAG9999'))]
+
+#remove rows if tag id is 'TAG' and then between 4-10 more digits.
+cleaned_survey_data <- cleaned_survey_data[!grepl('TAG\\d{4,10}', tagid)] 
+
+testing <- subset(cleaned_survey_data, !is.na(tagid))
+
+IDs<-unique(cleaned_survey_data$tagid)
+
+# Need to fix the IDs of participants
+# who showed an error with their qualtrics
+# home questionnaires
+misIDkey<-read.csv(paste0(workdir,"Qualtrics_Output/RDOC/Confidential/qidkey.csv"))
+TAGHomeQ<-sortbyqid_data
+for (i in seq_len(nrow(misIDkey))) {
+  TAGHomeQ <- TAGHomeQ %>%
+    dplyr::mutate(
+      value = ifelse(
+        ResponseId == as.character(misIDkey$qid[i]) & item == "SID",
+        as.character(misIDkey$SID[i]),
+        value
+      )
+    )
+}
+gather_cols<-unique(TAGHomeQ$item)
+TAGEmbeddedHomeQ_Gathered <- TAGHomeQ %>% 
+  spread(item,value) %>%
+  mutate(tagid=ifelse(nchar(SID)==3, sprintf("TAG%03s",SID), SID))
+test1 <- dplyr::select(TAGEmbeddedHomeQ_Gathered, tagid, survey_name, ResponseId, everything())
+test2 <- tidyr::gather(test1,"item","value",3:dim(test1)[2]) %>%
+  filter(!tagid=='')
+
+cleaned_survey_data2 <- bind_rows(cleaned_survey_data, test2)
+cleaned_survey_data3<-cleaned_survey_data2 %>% distinct(tagid,item,value,survey_name,.keep_all = TRUE)
+
+#Remove missing data and the duplicated data from the embedded ID home questionnaires
+cleaned_survey_data<-cleaned_survey_data3 %>% 
+  filter(!tagid=="") %>% 
+  filter(!tagid=="SV_eqvWqPtsOO4uqPP") %>% 
+  filter(grepl('TAG', tagid))
+
+# Change the one participant with a ghost SID
+cleaned_survey_data <- cleaned_survey_data %>%
+  mutate(tagid=ifelse(tagid=="078\177","TAG078",tagid)) 
+
+#Check odd IDs:
+#cleaned_survey_data %>% filter(item == 'qid') %>% distinct(tagid, survey_name, value) %>% filter(!grepl('TAG', tagid)) %>% write.csv('~/weirdIDs.csv')
+
+```
+
+```{r DSR Chunk, message=FALSE, warning=FALSE, include=FALSE}
+DSR_W3 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W3",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W3, file = paste0(workdir,"Qualtrics_Output/Wave3/DSR_Wave3_wide.csv"))
+
+DSR_W4 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W4",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W4, file = paste0(workdir,"Qualtrics_Output/Wave4/DSR_Wave4_wide.csv"))
+
+DSR_W5 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W5",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W5, file = paste0(workdir,"Qualtrics_Output/Wave5/DSR_Wave5_wide.csv"))
+
+DSR_W6 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W6",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W6, file = paste0(workdir,"Qualtrics_Output/Wave6/DSR_Wave6_wide.csv"))
+
+DSR_W1_TAG2 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W1",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W1_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave1/DSR_Wave1_TAG2_wide.csv"))
+
+DSR_W2_TAG2 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W2",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W2_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave2/DSR_Wave2_TAG2_wide.csv"))
+
+```
+
+```{r Return to Cleaning}
+rm(cleaned_survey_data2,cleaned_survey_data3,embedded_qs,misIDkey,missingID,sortbyqid_data,TAGEmbeddedHomeQ_Gathered,TAGHomeQ,test1,test2,i,gather_cols,IDs)
+rm(long_survey_data)
+
+surveyed<-unique(cleaned_survey_data$tagid)
+surveyed
+
+print(paste0("A total of ",length(surveyed)," participants have completed surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("Home",survey_name)))$tagid))," participants have completed home surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("Sess 1",survey_name) | grepl("W1S1",survey_name)))$tagid))," participants have completed Wave 1 Session 1 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("Sess 2",survey_name) | grepl("W1S2",survey_name)))$tagid))," participants have completed Wave 1 Session 2 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("- Home", survey_name) | grepl("W1 Home",survey_name)))$tagid))," participants have completed Wave 1 Home surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W2S1",survey_name)))$tagid))," participants have completed Wave 2 Session 1 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W2S2",survey_name)))$tagid))," participants have completed Wave 2 Session 2 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W2 Home",survey_name)))$tagid))," participants have completed Wave 2 Home surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W3S1",survey_name)))$tagid))," participants have completed Wave 3 Session 1 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W3S2",survey_name)))$tagid))," participants have completed Wave 3 Session 2 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W3 Home",survey_name)))$tagid))," participants have completed Wave 3 Home surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W4S1",survey_name)))$tagid))," participants have completed Wave 4 Session 1 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W4S2",survey_name)))$tagid))," participants have completed Wave 4 Session 2 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W4 Home",survey_name)))$tagid))," participants have completed Wave 4 Home surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W4 in-lab",survey_name)))$tagid))," participants have completed Wave 4 In-Lab surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W5S1",survey_name)))$tagid))," participants have completed Wave 5 Session 1 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W5S2",survey_name)))$tagid))," participants have completed Wave 5 Session 2 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W5 Home",survey_name)))$tagid))," participants have completed Wave 5 Home surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W5 in-lab",survey_name)))$tagid))," participants have completed Wave 5 In-Lab surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W6S1",survey_name)))$tagid))," participants have completed Wave 6 Session 1 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W6S2",survey_name)))$tagid))," participants have completed Wave 6 Session 2 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W6 Home",survey_name)))$tagid))," participants have completed Wave 6 Home surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("W6 in-lab",survey_name)))$tagid))," participants have completed Wave 6 In-Lab surveys!"))
+
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("ACE - Month 1",survey_name)))$tagid))," participants have completed ACE Month 1 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("ACE - Month 2",survey_name)))$tagid))," participants have completed ACE Month 2 surveys!"))
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("ACE - Month 3",survey_name)))$tagid))," participants have completed ACE Month 3 surveys!"))
+
+print(paste0("A total of ",length(unique((cleaned_survey_data %>% filter(grepl("SOS",survey_name)))$tagid))," participants have completed SOS surveys!"))
+
+#rm(surveyed)
+```
