@@ -1,0 +1,113 @@
+---
+title: "Score_Qualtrics_RedcapSetup"
+author: "dsnlab"
+date: "20-Nov-2025"
+output: html_document
+---
+
+Load and clean redcap info
+```{r Load&Clean Redcap, message=FALSE, warning=FALSE, include=FALSE}
+redcapData <- read.csv(paste0(workdir,"Qualtrics_Output/RDOC/Confidential/redcap_dates_20250929.csv"), header = TRUE, stringsAsFactors = FALSE)
+redcapData$redcap_event_name <- str_replace(redcapData$redcap_event_name, "tag2_w1", "tag2_wave_1") 
+redcapData$redcap_event_name <- str_replace(redcapData$redcap_event_name, "tag2_w2", "tag2_wave_2") 
+redcapData$redcap_event_name <- str_replace(redcapData$redcap_event_name, "tag2_w3", "tag2_wave_3") 
+redcapData$redcap_event_name <- str_replace(redcapData$redcap_event_name, "sos", "sos_wave_7") 
+redcapData_dob<-redcapData %>%
+  dplyr::select(dob,subject_spit_id) %>%
+  dplyr::filter(!dob=="")
+redcapData_sessiondates<-redcapData %>%
+  dplyr::select(sa_date,sb_date,sos_session_date,redcap_event_name,subject_spit_id) %>%
+  filter(!sa_date=="" | !sos_session_date=="") %>%
+  extract(redcap_event_name, c('wave'), 'wave_([\\d]).*')
+redcap_cleaned<-merge(redcapData_sessiondates,redcapData_dob) %>%
+  mutate(tagid=substring(subject_spit_id,first=4,last=length(subject_spit_id)))%>%
+  filter(!subject_spit_id=="TAG_001P") %>%
+  mutate(tagid=ifelse(nchar(tagid)==4,substring(subject_spit_id,first=5,last=length(subject_spit_id)),tagid)) %>%
+  mutate(tagid=sprintf("TAG%03d",as.integer(tagid))) %>%
+  dplyr::select(-subject_spit_id)
+redcap_cleaned$sos_session_date <- as.Date(redcap_cleaned$sos_session_date, format = "%m/%d/%Y")
+redcap_cleaned <- redcap_cleaned %>% mutate(wave=ifelse(wave==7,"sos",wave))
+redcap_cleaned$sa_date <- as.Date(redcap_cleaned$sa_date, format = "%m/%d/%Y")
+redcap_cleaned$sb_date <- as.Date(redcap_cleaned$sb_date, format = "%m/%d/%Y")
+redcap_cleaned$dob <- as.Date(redcap_cleaned$dob, format = "%m/%d/%Y")
+rm(redcapData_dob,redcapData,redcapData_sessiondates)
+```
+
+Configure anthro information
+```{r Load&Clean Redcap, message=FALSE, warning=FALSE, include=FALSE}
+redcap_anthro <- read.csv(paste0(workdir,"Qualtrics_Output/RDOC/Confidential/redcap_anthro_20250929.csv"), header = TRUE, stringsAsFactors = FALSE) 
+redcap_anthro$redcap_event_name <- str_replace(redcap_anthro$redcap_event_name, "tag2_w1", "tag2_wave_1") 
+redcap_anthro$redcap_event_name <- str_replace(redcap_anthro$redcap_event_name, "tag2_w2", "tag2_wave_2") 
+redcap_anthro$redcap_event_name <- str_replace(redcap_anthro$redcap_event_name, "tag2_w3", "tag2_wave_3") 
+redcap_anthro <- redcap_anthro %>% 
+  filter(!anthro_doc=="") %>% 
+  extract(redcap_event_name, c('wave'), 'wave_([\\d]).*') %>%
+  mutate(tagid=substring(subject_spit_id,first=4,last=length(subject_spit_id)))%>%
+  filter(!subject_spit_id=="TAG_001P") %>%
+  mutate(tagid=ifelse(nchar(tagid)==4,substring(subject_spit_id,first=5,last=length(subject_spit_id)),tagid)) %>%
+  mutate(tagid=sprintf("TAG%03d",as.integer(tagid))) %>%
+  dplyr::select(-subject_spit_id)
+#note: need to fix height system errors in redcap and code below
+anthro<-left_join(redcap_anthro,redcap_cleaned,by=c("tagid", "wave")) %>%
+  mutate_at(vars(matches('(height|weight|waist).*')), funs(as.numeric)) %>%
+  mutate(height_1=ifelse(height_system==3,(height_1*2.54),height_1),
+         height_2=ifelse(height_system==3,(height_2*2.54),height_2),
+         height_3=ifelse(height_system==3,(height_3*2.54),height_3),
+         waist_1=ifelse(waist_system==3,(waist_1*2.54),waist_1),
+         waist_2=ifelse(waist_system==3,(waist_2*2.54),waist_2),
+         waist_3=ifelse(waist_system==3,(waist_3*2.54),waist_3),
+         weight_1=ifelse(weight_system==2,(weight_1*0.453592),weight_1),
+         weight_2=ifelse(weight_system==2,(weight_2*0.453592),weight_2),
+         weight_3=ifelse(weight_system==2,(weight_3*0.453592),weight_3))
+anthro<- left_join(anthro, 
+                   anthro %>%
+                     group_by(tagid, wave) %>%
+                     summarise(height=ifelse(!is.na(height_1 & height_2 & height_3),
+                                             median(c(height_1,height_2,height_3)),
+                                             ifelse(!is.na(height_1 & height_2) & is.na(height_3),
+                                                    mean(c(height_1,height_2)),
+                                                    ifelse(!is.na(height_1) & is.na(height_2 & height_3), height_1,
+                                                           height_1)))))
+anthro<- left_join(anthro, anthro %>%
+                     group_by(tagid, wave) %>%
+                     summarise(weight=round(ifelse(!is.na(weight_1 & weight_2 & weight_3), median(c(weight_1, weight_2, weight_3)),
+                                                   ifelse(!is.na(weight_1 & weight_2) & is.na(weight_3), mean(c(weight_1, weight_2)),
+                                                          ifelse(!is.na(weight_1) & is.na(weight_2 & weight_3), weight_1, weight_1))),3)))
+anthro<- left_join(anthro, anthro %>%
+                     group_by(tagid, wave) %>%
+                     summarise(waist=ifelse(!is.na(waist_1 & waist_2 & waist_3), median(c(waist_1, waist_2, waist_3)),
+                                            ifelse(!is.na(waist_1 & waist_2) & is.na(waist_3), mean(c(waist_1, waist_2)),
+                                                   ifelse(!is.na(waist_1) & is.na(waist_2 & waist_3), waist_1, waist_1)))))
+anthro$anthro_doc <- as.Date(anthro$anthro_doc, format = "%m/%d/%Y")
+anthro<-anthro %>% 
+  filter(!is.na(anthro_doc)) %>%
+  mutate(age=round((interval(start = dob, end = anthro_doc) / duration(num = 1, units = "years")),2)) %>%
+  dplyr::select(-sa_date,-sb_date,-contains("waist_"),-contains("height_"),-contains("weight_"),-dob)
+
+heights_graph<-ggplot(anthro, aes(x=height)) +
+  geom_histogram(alpha=.3)+
+  ggtitle(paste0("Height (cm) for ",length(anthro$height[!is.na(anthro$height)])," participants"))+
+  facet_grid(~wave)
+
+weights_graph<-ggplot(anthro, aes(x=weight)) +
+  geom_histogram(alpha=.3)+
+  ggtitle(paste0("Weight (lb) for ",length(anthro$weight[!is.na(anthro$weight)])," participants"))+
+  facet_grid(~wave)
+
+waist_graph<-ggplot(anthro, aes(x=waist)) +
+  geom_histogram(alpha=.3)+
+  ggtitle(paste0("Waist measurement (cm) for ",length(anthro$waist[!is.na(anthro$waist)])," participants"))+
+  facet_grid(~wave)
+
+anthro_change_graph <- anthro %>%
+  select(tagid, height, weight, waist, age) %>%
+  gather(key='key', value='value', -tagid, -age) %>%
+  ggplot(aes(x=age, y=value, group=tagid)) +
+  geom_point(alpha=.15) +
+  geom_line(alpha=.5) +
+  geom_line(aes(group=NULL), stat = 'smooth', method = 'loess', span=1, color = 'blue') +
+  facet_wrap(~key, scales='free') +
+  theme_bw()
+
+rm(waist_graph,heights_graph,weights_graph,redcap_anthro,anthro_change_graph)
+```
