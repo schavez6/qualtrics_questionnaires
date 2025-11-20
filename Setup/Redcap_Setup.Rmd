@@ -111,3 +111,12 @@ anthro_change_graph <- anthro %>%
 
 rm(waist_graph,heights_graph,weights_graph,redcap_anthro,anthro_change_graph)
 ```
+
+Prep for Export
+```{r}
+redcap_cleaned_dates <- redcap_cleaned
+redcap_cleaned$sa_date <- as.character(redcap_cleaned$sa_date)
+redcap_cleaned$sb_date <- as.character(redcap_cleaned$sb_date)
+redcap_cleaned$sos_session_date <- as.character(redcap_cleaned$sos_session_date)
+redcap_cleaned$dob <- as.character(redcap_cleaned$dob)
+```
