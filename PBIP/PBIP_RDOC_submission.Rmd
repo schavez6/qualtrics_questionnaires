@@ -1,0 +1,38 @@
+```{r}
+## Make RDOC ready file
+PBIP_Wave1$survey_date <- as.character(PBIP_Wave1$survey_date)
+ndar_pbip_data <- left_join(PBIP_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         site="University of Oregon, USA",
+         tsmfemale=as.integer(stage),
+         tsmmale=9999,
+         tsmboth=9,
+         tsftsg=PBIP_1A,
+         tsftphg=PBIP_2A,
+         tsmfemale=ifelse(is.na(tsmfemale), 9, tsmfemale)
+  )
+ndar_pbip_data <- left_join(ndar_key,ndar_pbip_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("PBIP",ignore.case = FALSE),-stage,-dob,-survey_date,-survey_type,-survey_name,-tagid,-anontagid,-ID,-guid)
+pbip_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/tanner_sms01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+pbip_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/tanner_sms01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+pbip_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/tanner_sms01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+pbip_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/tanner_sms01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+pbip_temp_df<-data.frame(pbip_temp)
+ndar_pbip_data<-rbind(pbip_temp_df,ndar_pbip_data)
+
+part2<-colnames(ndar_pbip_data)
+part3<-as.matrix(ndar_pbip_data)
+colnames(part3)<-NULL
+together<-rbind(pbip_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/tanner_sms01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(pbip_temp_df,pbip_temp,pbip_df_header,PBIP_Wave1_pbip_by_pds_graph,PBIP_PDS_Wave1,
+   PBIP_Wave1_pbip_graph,PBIP_Wave1,PBIP,part3,part2,together)
+```
