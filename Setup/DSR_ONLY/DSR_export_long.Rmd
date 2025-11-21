@@ -1,0 +1,50 @@
+Prepare DSR
+```{r}
+DSR <- filter(cleaned_survey_data, grepl("Daily",survey_name)) %>% 
+                   mutate(value=as.numeric(value)) %>% 
+                   filter(!is.na(value)) #%>% 
+  #distinct(tagid, item, value, survey_name, StartDate,.keep_all = T)
+DSR <- DSR %>% arrange(tagid, StartDate)
+
+DSR_Q1s <- filter(DSR, grepl("DSR",item))
+DSR_Q2s <- filter(DSR, grepl("Q",item))
+DSR_all <- rbind(DSR_Q1s,DSR_Q2s)
+DSR_W3 <- filter(DSR_all, grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+DSR_W4 <- filter(DSR_all, grepl("W4",survey_name))
+DSR_W5 <- filter(DSR_all, grepl("W5",survey_name))
+DSR_W6 <- filter(DSR_all, grepl("W6",survey_name))
+DSR_W1_TAG2 <- filter(DSR_all, grepl("W1",survey_name))
+DSR_W2_TAG2 <- filter(DSR_all, grepl("W2",survey_name))
+DSR_W3_TAG2 <- filter(DSR_all, grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+
+library(lubridate)
+#DSR_W4$StartDate <- lubridate::as_datetime(DSR_W4$StartDate)
+
+library(reshape2)
+#DSR_W4$survey_name <- NULL
+#DSR_W4_wide <- dcast(DSR_W4, tagid + StartDate ~ item, value.var = "value")
+
+#DSR_W4 <- as_tibble(DSR_W4)
+
+#DSR_W4_wide <- DSR_W4 %>% pivot_wider(names_from = item, values_from = value, id_cols = c(!survey_name))
+
+write.csv(DSR_W3, file = paste0(workdir,"Qualtrics_Output/Wave3/DSR_Wave3_alldata.csv"))
+
+write.csv(DSR_W4, file = paste0(workdir,"Qualtrics_Output/Wave4/DSR_Wave4_alldata.csv"))
+
+write.csv(DSR_W5, file = paste0(workdir,"Qualtrics_Output/Wave5/DSR_Wave5_alldata.csv"))
+
+write.csv(DSR_W6, file = paste0(workdir,"Qualtrics_Output/Wave6/DSR_Wave6_alldata.csv"))
+
+write.csv(DSR_W1_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave1/DSR_Wave1_TAG2_alldata.csv"))
+
+write.csv(DSR_W2_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave2/DSR_Wave2_TAG2_alldata.csv"))
+
+write.csv(DSR_W3_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave3/DSR_Wave3_TAG2_alldata.csv"))
+
+DSR_W3_wide <- DSR_W3 %>% 
+  select(-survey_name) %>% spread(item, value) #%>% select(-(4:17))
+write.csv(DSR_W3, file = paste0(workdir,"Qualtrics_Output/Wave3/DSR_Wave3_wide.csv"))
+```
