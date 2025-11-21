@@ -1,0 +1,94 @@
+Prepare CARE-R Soc
+```{r}
+CARE_R_SOC<-left_join(filter(cleaned_survey_data, grepl("CARE-R",item)) %>% 
+                        mutate(value=as.numeric(value)) %>% 
+                        filter(!is.na(value)) %>% 
+                        distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                        spread(item,value),redcap_cleaned %>%
+                        filter(!is.na(dob),!is.na(sa_date)) %>%
+                        dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+CARE_R_SOC_Wave1<-left_join(CARE_R_SOC,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>% 
+  dplyr::select(-value) %>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(carersoc_gen_N=2,
+         carersoc_gen_missing=rowSums(is.na(cbind(`CARE-R_I`,`CARE-R_II`))),
+         carersoc_gen_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_I`,`CARE-R_II`)))/2),
+         carersoc_gen=rowMeans(cbind(`CARE-R_I`,`CARE-R_II`),na.rm=T),
+         carersoc_dosubstance_N=4,
+         carersoc_dosubstance_missing=rowSums(is.na(cbind(`CARE-R_2A`,`CARE-R_3A`,`CARE-R_4A`,`CARE-R_5A`))), #NV: should CARE-R_1A be in her e too?
+         carersoc_dosubstance_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_2A`,`CARE-R_3A`,`CARE-R_4A`,`CARE-R_5A`)))/4),
+         carersoc_dosubstance=round(rowMeans(cbind(`CARE-R_2A`,`CARE-R_3A`,`CARE-R_4A`,`CARE-R_5A`),na.rm=T),2),
+         carersoc_avoidsubstance_N=4,
+         carersoc_avoidsubstance_missing=rowSums(is.na(cbind(`CARE-R_2B`,`CARE-R_3B`,`CARE-R_4B`,`CARE-R_5B`))),
+         carersoc_avoidsubstance_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_2B`,`CARE-R_3B`,`CARE-R_4B`,`CARE-R_5B`)))/4),
+         carersoc_avoidsubstance=round(rowMeans(cbind(`CARE-R_2B`,`CARE-R_3B`,`CARE-R_4B`,`CARE-R_5B`),na.rm=T),2),
+         carersoc_doviolence_N=4,
+         carersoc_doviolence_missing=rowSums(is.na(cbind(`CARE-R_7A`,`CARE-R_9A`,`CARE-R_10A`,`CARE-R_11A`))),
+         carersoc_doviolence_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_7A`,`CARE-R_9A`,`CARE-R_10A`,`CARE-R_11A`)))/4),
+         carersoc_doviolence=round(rowMeans(cbind(`CARE-R_7A`,`CARE-R_9A`,`CARE-R_10A`,`CARE-R_11A`),na.rm=T),2),
+         carersoc_avoidviolence_N=4,
+         carersoc_avoidviolence_missing=rowSums(is.na(cbind(`CARE-R_7B`,`CARE-R_9B`,`CARE-R_10B`,`CARE-R_11B`))),
+         carersoc_avoidviolence_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_7B`,`CARE-R_9B`,`CARE-R_10B`,`CARE-R_11B`)))/4),
+         carersoc_avoidviolence=round(rowMeans(cbind(`CARE-R_7B`,`CARE-R_9B`,`CARE-R_10B`,`CARE-R_11B`),na.rm=T),2),
+         carersoc_dorecklessdriving_N=4,
+         carersoc_dorecklessdriving_missing=rowSums(is.na(cbind(`CARE-R_6A`,`CARE-R_12A`,`CARE-R_13A`,`CARE-R_14A`))),
+         carersoc_dorecklessdriving_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_6A`,`CARE-R_12A`,`CARE-R_13A`,`CARE-R_14A`)))/4),
+         carersoc_dorecklessdriving=round(rowMeans(cbind(`CARE-R_6A`,`CARE-R_12A`,`CARE-R_13A`,`CARE-R_14A`),na.rm=T),2),
+         carersoc_avoidrecklessdriving_N=4,
+         carersoc_avoidrecklessdriving_missing=rowSums(is.na(cbind(`CARE-R_6B`,`CARE-R_12B`,`CARE-R_13B`,`CARE-R_14B`))),
+         carersoc_avoidrecklessdriving_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_6B`,`CARE-R_12B`,`CARE-R_13B`,`CARE-R_14B`)))/4),
+         carersoc_avoidrecklessdriving=round(rowMeans(cbind(`CARE-R_6B`,`CARE-R_12B`,`CARE-R_13B`,`CARE-R_14B`),na.rm=T),2),
+         carersoc_dograffiti_N=1,
+         carersoc_dograffiti_missing=rowSums(is.na(cbind(`CARE-R_8A`))),
+         carersoc_dograffiti_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_8A`)))/1),
+         carersoc_dograffiti=`CARE-R_8A`,
+         carersoc_avoidgraffiti_N=1,
+         carersoc_avoidgraffiti_missing=rowSums(is.na(cbind(`CARE-R_8B`))),
+         carersoc_avoidgraffiti_missing_perc=100*(rowSums(is.na(cbind(`CARE-R_8B`)))/1),
+         carersoc_avoidgraffiti=`CARE-R_8B`)  
+
+## Save it
+CARE_R_SOC_Wave1_outdf <- CARE_R_SOC_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+CARE_R_SOC_Wave1_TAG2_outdf <- CARE_R_SOC_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CARE_R_SOC_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CARE_R_SOC_Wave1.csv"))
+write.csv(CARE_R_SOC_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CARE_R_SOC_Wave1_TAG2.csv"))
+
+CARE_R_SOC_Wave2_outdf <- CARE_R_SOC_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+CARE_R_SOC_Wave1add_outdf <- CARE_R_SOC_Wave2_outdf[CARE_R_SOC_Wave2_outdf$survey_date=="2017-08-12",]
+CARE_R_SOC_Wave2_outdf <- CARE_R_SOC_Wave2_outdf[CARE_R_SOC_Wave2_outdf$survey_date!="2017-08-12",]
+write.csv(CARE_R_SOC_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CARE_R_SOC_Wave2.csv"))
+
+#fix CARE_R_SOC W1
+CARE_R_SOC_Wave1_outdf <- rbind(CARE_R_SOC_Wave1_outdf,CARE_R_SOC_Wave1add_outdf)
+write.csv(CARE_R_SOC_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CARE_R_SOC_Wave1.csv"))
+
+CARE_R_SOC_Wave2_TAG2_outdf <- CARE_R_SOC_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CARE_R_SOC_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CARE_R_SOC_Wave2_TAG2.csv"))
+
+CARE_R_SOC_Wave3_outdf <- CARE_R_SOC_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(CARE_R_SOC_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CARE_R_SOC_Wave3.csv"))
+
+#not yet...
+CARE_R_SOC_Wave3_TAG2_outdf <- CARE_R_SOC_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(CARE_R_SOC_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CARE_R_SOC_Wave3_TAG2.csv"))
+
+CARE_R_SOC_Wave4_outdf <- CARE_R_SOC_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(CARE_R_SOC_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/CARE_R_SOC_Wave4.csv"))
+
+#removed midway through w4
+#CARE_R_SOC_Wave5_outdf <- CARE_R_SOC_Wave1 %>% filter(grepl("W5",survey_name)) 
+#write.csv(CARE_R_SOC_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/CARE_R_SOC_Wave5.csv"))
+```
