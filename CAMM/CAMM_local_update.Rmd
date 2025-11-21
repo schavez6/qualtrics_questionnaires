@@ -1,0 +1,119 @@
+Prepare CAMM
+```{r}
+CAMM<-left_join(filter(cleaned_survey_data, grepl("CAMM",item)) %>% 
+                  mutate(value=as.numeric(value)) %>% 
+                  filter(!is.na(value)) %>% 
+                  distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                  spread(item,value),
+                redcap_cleaned %>%
+                  filter(!is.na(dob),!is.na(sa_date)) %>%
+                  dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+CAMM_Wave1<-left_join(CAMM,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>% 
+  dplyr::select(-value) %>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V4 - Current",sa_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                                   ifelse(survey_name=="TAG - Sess 1 - V2",sa_date,
+                                          ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 )))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(CAMM_1=ifelse(CAMM_1==4,0,
+                       ifelse(CAMM_1==3,1,
+                              ifelse(CAMM_1==2,2,
+                                     ifelse(CAMM_1==1,3,
+                                            ifelse(CAMM_1==0,4,
+                                                   NA))))),
+         CAMM_2=ifelse(CAMM_2==4,0,
+                       ifelse(CAMM_2==3,1,
+                              ifelse(CAMM_2==2,2,
+                                     ifelse(CAMM_2==1,3,
+                                            ifelse(CAMM_2==0,4,
+                                                   NA))))),
+         CAMM_3=ifelse(CAMM_3==4,0,
+                       ifelse(CAMM_3==3,1,
+                              ifelse(CAMM_3==2,2,
+                                     ifelse(CAMM_3==1,3,
+                                            ifelse(CAMM_3==0,4,
+                                                   NA))))),
+         CAMM_4=ifelse(CAMM_4==4,0,
+                       ifelse(CAMM_4==3,1,
+                              ifelse(CAMM_4==2,2,
+                                     ifelse(CAMM_4==1,3,
+                                            ifelse(CAMM_4==0,4,
+                                                   NA))))),
+         CAMM_5=ifelse(CAMM_5==4,0,
+                       ifelse(CAMM_5==3,1,
+                              ifelse(CAMM_5==2,2,
+                                     ifelse(CAMM_5==1,3,
+                                            ifelse(CAMM_5==0,4,
+                                                   NA))))),
+         CAMM_6=ifelse(CAMM_6==4,0,
+                       ifelse(CAMM_6==3,1,
+                              ifelse(CAMM_6==2,2,
+                                     ifelse(CAMM_6==1,3,
+                                            ifelse(CAMM_6==0,4,
+                                                   NA))))),
+         CAMM_7=ifelse(CAMM_7==4,0,
+                       ifelse(CAMM_7==3,1,
+                              ifelse(CAMM_7==2,2,
+                                     ifelse(CAMM_7==1,3,
+                                            ifelse(CAMM_7==0,4,
+                                                   NA))))),
+         CAMM_8=ifelse(CAMM_8==4,0,
+                       ifelse(CAMM_8==3,1,
+                              ifelse(CAMM_8==2,2,
+                                     ifelse(CAMM_8==1,3,
+                                            ifelse(CAMM_8==0,4,
+                                                   NA))))),
+         CAMM_9=ifelse(CAMM_9==4,0,
+                       ifelse(CAMM_9==3,1,
+                              ifelse(CAMM_9==2,2,
+                                     ifelse(CAMM_9==1,3,
+                                            ifelse(CAMM_9==0,4,
+                                                   NA))))),
+         CAMM_10=ifelse(CAMM_10==4,0,
+                        ifelse(CAMM_10==3,1,
+                               ifelse(CAMM_10==2,2,
+                                      ifelse(CAMM_10==1,3,
+                                             ifelse(CAMM_10==0,4,
+                                                    NA))))))%>%
+  mutate(CAMM_N=10,
+         CAMM_missing=rowSums(is.na(cbind(CAMM_1,CAMM_2,CAMM_3,CAMM_4,CAMM_5,CAMM_6,CAMM_7,CAMM_8,CAMM_9,CAMM_10))),
+         CAMM_missing_perc=100*(rowSums(is.na(cbind(CAMM_1,CAMM_2,CAMM_3,CAMM_4,CAMM_5,CAMM_6,CAMM_7,CAMM_8,CAMM_9,CAMM_10)))/10),
+         CAMM_mean=rowMeans(cbind(CAMM_1,CAMM_2,CAMM_3,CAMM_4,CAMM_5,CAMM_6,CAMM_7,CAMM_8,CAMM_9,CAMM_10), na.rm=T),
+         CAMM_total=rowSums(cbind(CAMM_1,CAMM_2,CAMM_3,CAMM_4,CAMM_5,CAMM_6,CAMM_7,CAMM_8,CAMM_9,CAMM_10), na.rm=F)) #change to false unless submitting ndar
+
+## Save it
+CAMM_Wave1_outdf <- CAMM_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+CAMM_Wave1_TAG2_outdf <- CAMM_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CAMM_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CAMM_Wave1.csv"))
+write.csv(CAMM_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CAMM_Wave1_TAG2.csv"))
+
+CAMM_Wave2_outdf <- CAMM_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+write.csv(CAMM_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CAMM_Wave2.csv"))
+
+CAMM_Wave2_TAG2_outdf <- CAMM_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CAMM_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CAMM_Wave2_TAG2.csv"))
+
+CAMM_Wave3_outdf <- CAMM_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(CAMM_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CAMM_Wave3.csv"))
+
+CAMM_Wave3_TAG2_outdf <- CAMM_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CAMM_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CAMM_Wave3_TAG2.csv"))
+
+CAMM_Wave4_outdf <- CAMM_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(CAMM_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/CAMM_Wave4.csv"))
+
+CAMM_Wave5_outdf <- CAMM_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(CAMM_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/CAMM_Wave5.csv"))
+
+CAMM_Wave6_outdf <- CAMM_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(CAMM_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/CAMM_Wave6.csv"))
