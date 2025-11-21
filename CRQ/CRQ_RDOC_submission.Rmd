@@ -1,0 +1,57 @@
+```{r}
+## Make RDOC ready file
+ndar_crq_data <- left_join(CRQ_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         corumq_1=CRQ_1,
+         corumq_2=CRQ_2,
+         corumq_3=CRQ_3,
+         corumq_4=CRQ_4,
+         corumq_5=CRQ_5,
+         corumq_6=CRQ_6,
+         corumq_7=CRQ_7,
+         corumq_8=CRQ_8,
+         corumq_9=CRQ_9,
+         corumq_10=CRQ_10,
+         corumq_11=CRQ_11,
+         corumq_12=CRQ_12,
+         corumq_13=CRQ_13,
+         corumq_14=CRQ_14,
+         corumq_15=CRQ_15,
+         corumq_16=CRQ_16,
+         corumq_17=CRQ_17,
+         corumq_18=CRQ_18,
+         corumq_19=CRQ_19,
+         corumq_20=CRQ_20,
+         corumq_21=CRQ_21,
+         corumq_22=CRQ_22,
+         corumq_23=CRQ_23,
+         corumq_24=CRQ_24,
+         corumq_25=CRQ_25,
+         corumq_26=CRQ_26,
+         corumq_27=CRQ_27
+  )
+ndar_crq_data <- left_join(ndar_key,ndar_crq_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("CRQ",ignore.case = FALSE),-dob,-survey_date,
+         -survey_type,-survey_name,-tagid,-anontagid,-ID,-guid)
+crq_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/crq01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+crq_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/crq01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+crq_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/crq01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+crq_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/crq01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+crq_temp_df<-data.frame(crq_temp)
+ndar_crq_data<-rbind(crq_temp_df,ndar_crq_data)
+
+part2<-colnames(ndar_crq_data)
+part3<-as.matrix(ndar_crq_data)
+colnames(part3)<-NULL
+together<-rbind(crq_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/crq01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,crq_df_header,crq_temp,crq_temp_df,CRQ,CRQ_Wave1,CRQ_Wave1_means,CRQ_Wave1_means_graph,CRQ_Wave1_totals,CRQ_Wave1_totals_graph)
+```
