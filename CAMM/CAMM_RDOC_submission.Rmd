@@ -1,0 +1,40 @@
+```{r}
+## Make RDOC ready file
+ndar_camm_data <- left_join(CAMM_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         camm_1=CAMM_1,
+         camm_2=CAMM_2,
+         camm_3=CAMM_3,
+         camm_4=CAMM_4,
+         camm_5=CAMM_5,
+         camm_6=CAMM_6,
+         camm_7=CAMM_7,
+         camm_8=CAMM_8,
+         camm_9=CAMM_9,
+         camm_10=CAMM_10,
+         camm_tot=CAMM_total
+  )
+ndar_camm_data <- left_join(ndar_key,ndar_camm_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("CAMM",ignore.case = FALSE),-dob,-survey_date,-survey_type,-survey_name,-tagid,-anontagid,-ID,-guid)
+camm_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/camm01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+camm_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/camm01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+camm_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/camm01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+camm_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/camm01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+camm_temp_df<-data.frame(camm_temp)
+ndar_camm_data<-rbind(camm_temp_df,ndar_camm_data)
+
+part2<-colnames(ndar_camm_data)
+part3<-as.matrix(ndar_camm_data)
+colnames(part3)<-NULL
+together<-rbind(camm_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/camm01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(CAMM,CAMM_Wave1,CAMM_Wave1_mean_graph,CAMM_Wave1_total_graph,
+   camm_df_header,camm_temp,camm_temp_df,part3,part2,together)
+```
