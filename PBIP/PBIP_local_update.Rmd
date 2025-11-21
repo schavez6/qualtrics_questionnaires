@@ -1,0 +1,98 @@
+Prepare PBIP
+```{r}
+PBIP<-left_join(filter(cleaned_survey_data, grepl("PBIP",item)) %>% 
+                  mutate(value=as.numeric(value)) %>%
+                  filter(!is.na(value)) %>% 
+                  distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                  spread(item,value),
+                redcap_cleaned %>%
+                  filter(!is.na(dob),!is.na(sa_date)) %>%
+                  dplyr::select(tagid, sa_date, sb_date, sos_session_date, dob),by="tagid")
+
+PBIP_Wave1<-left_join(PBIP,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>% 
+  dplyr::select(-value) %>%
+  #mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+   #                         ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+    #                               ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+     #                                     ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+      #                                    ))))) %>%
+  mutate(survey_date=qualtrics_date) %>% 
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>%
+  mutate(stage=rowMeans(cbind(PBIP_1A,PBIP_2A),na.rm=F), #NV: changed na.rm to False from True. Also removed filtering of those with missing stage.
+         PBIP_stage_N=2,
+         PBIP_stage_missing=rowSums(is.na(cbind(PBIP_1A,PBIP_2A))),
+         PBIP_stage_missing_perc=100*(rowSums(is.na(cbind(PBIP_1A,PBIP_2A)))/2))  
+
+## Save it
+PBIP_Wave1_outdf <- PBIP_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE|SOS|TAG2",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+PBIP_Wave1_TAG2_outdf <- PBIP_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE|SOS",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PBIP_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PBIP_Wave1.csv"))
+write.csv(PBIP_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PBIP_Wave1_TAG2.csv"))
+
+PBIP_Wave2_outdf <- PBIP_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+PBIP_Wave1add_p1_outdf <- PBIP_Wave2_outdf[PBIP_Wave2_outdf$survey_date=="2017-08-12",]
+PBIP_Wave1add_p2_outdf <- PBIP_Wave2_outdf[PBIP_Wave2_outdf$survey_date=="2017-12-12",]
+PBIP_Wave2_outdf <- PBIP_Wave2_outdf[PBIP_Wave2_outdf$survey_date!="2017-08-12",]
+PBIP_Wave2_outdf <- PBIP_Wave2_outdf[PBIP_Wave2_outdf$survey_date!="2017-12-12",]
+write.csv(PBIP_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PBIP_Wave2.csv"))
+
+#fix PBIP W1
+PBIP_Wave1_outdf <- rbind(PBIP_Wave1_outdf,PBIP_Wave1add_p1_outdf,PBIP_Wave1add_p2_outdf)
+write.csv(PBIP_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PBIP_Wave1.csv"))
+
+PBIP_Wave2_TAG2_outdf <- PBIP_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PBIP_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PBIP_Wave2_TAG2.csv"))
+
+PBIP_Wave3_outdf <- PBIP_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+write.csv(PBIP_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PBIP_Wave3.csv"))
+
+#not yet...
+PBIP_Wave3_TAG2_outdf <- PBIP_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(PBIP_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PBIP_Wave3_TAG2.csv"))
+
+PBIP_Wave4_outdf <- PBIP_Wave1 %>% filter(grepl("W4",survey_name))
+write.csv(PBIP_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/PBIP_Wave4.csv"))
+
+PBIP_Wave5_outdf <- PBIP_Wave1 %>% filter(grepl("W5|TAG2 W1",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+write.csv(PBIP_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/PBIP_Wave5.csv"))
+
+PBIP_Wave6_outdf <- PBIP_Wave1 %>% filter(grepl("W6",survey_name))
+write.csv(PBIP_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/PBIP_Wave6.csv"))
+
+PBIP_WaveSOS_outdf <- PBIP_Wave1 %>% filter(grepl("SOS",survey_name))
+write.csv(PBIP_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/PBIP_WaveSOS.csv"))
+
+PBIP_WaveACE1_outdf <- PBIP_Wave1 %>% filter(grepl("ACE",survey_name))
+write.csv(PBIP_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/PBIP_WaveACE1.csv"))
+
+################
+PBIP_Wave1_outdf$wave <- 1
+PBIP_Wave1_TAG2_outdf$wave <- 1
+PBIP_Wave2_outdf$wave <- 2
+PBIP_Wave2_TAG2_outdf$wave <- 2
+PBIP_Wave3_outdf$wave <- 3
+#PBIP_Wave3_TAG2_outdf$wave <- 3
+PBIP_Wave4_outdf$wave <- 4
+PBIP_Wave5_outdf$wave <- 5
+PBIP_Wave6_outdf$wave <- 6
+PBIP_WaveSOS_outdf$wave <- "SOS"
+PBIP_WaveACE1_outdf$wave <- "ACE1"
+
+#need to add pbip tag2w3 when available to command below
+PBIP_alldata <- rbind(PBIP_Wave1_outdf,PBIP_Wave2_outdf,PBIP_Wave3_outdf,PBIP_Wave4_outdf,
+                      PBIP_Wave5_outdf,PBIP_Wave6_outdf,PBIP_Wave1_TAG2_outdf,
+                      PBIP_Wave2_TAG2_outdf,PBIP_WaveSOS_outdf,PBIP_WaveACE1_outdf)
+
+PBIP_alldata <- PBIP_alldata[with(PBIP_alldata, order(tagid, survey_date)),]
+PBIP_alldata <- PBIP_alldata %>% relocate(tagid, wave, survey_date)
+write.csv(PBIP_alldata, file = paste0(workdir,"Qualtrics_Output/Long/PBIP_AllObs_Chronological.csv"))
+```
