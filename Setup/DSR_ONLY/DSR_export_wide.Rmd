@@ -1,0 +1,32 @@
+```{r DSR Chunk, message=FALSE, warning=FALSE, include=FALSE}
+DSR_W3 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W3",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W3, file = paste0(workdir,"Qualtrics_Output/Wave3/DSR_Wave3_wide.csv"))
+
+DSR_W4 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W4",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W4, file = paste0(workdir,"Qualtrics_Output/Wave4/DSR_Wave4_wide.csv"))
+
+DSR_W5 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W5",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W5, file = paste0(workdir,"Qualtrics_Output/Wave5/DSR_Wave5_wide.csv"))
+
+DSR_W6 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W6",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W6, file = paste0(workdir,"Qualtrics_Output/Wave6/DSR_Wave6_wide.csv"))
+
+DSR_W1_TAG2 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W1",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W1_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave1/DSR_Wave1_TAG2_wide.csv"))
+
+DSR_W2_TAG2 <- filter(long_survey_data, grepl("Daily", survey_name)) %>% 
+  select(-SID_embed,-Q343,-RecipientLastName) %>% filter(grepl("W2",survey_name)) %>% 
+  select(-survey_name) %>% spread(item, value) %>% select(-(4:17))
+write.csv(DSR_W2_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave2/DSR_Wave2_TAG2_wide.csv"))
+
+```
