@@ -1,0 +1,60 @@
+```{r}
+## Make RDOC ready file
+CESDC_Wave1$survey_date <- as.character(CESDC_Wave1$survey_date)
+ndar_cesdc_data <- left_join(CESDC_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         version_form="Child version (CES-DC)",
+         comments_misc=ifelse(grepl("Sess 1",survey_name),"Session1",
+                              ifelse(grepl("Session 1",survey_name),"Session1",
+                                     ifelse(grepl("Sess 2",survey_name),"Session2",
+                                            ifelse(grepl("Session 2",survey_name),"Session2",
+                                                   ifelse(grepl("Home",survey_name),"Home Questionnaires",NA))))),
+         sex="F",bothered_by_things=CES_DC_1,
+         appetite_poor=CES_DC_2,
+         couldnt_shake_blues=CES_DC_3,
+         just_as_good_people=CES_DC_4,
+         trouble_keeping_mind=CES_DC_5,
+         felt_depressed=CES_DC_6,
+         everything_effort=CES_DC_7,
+         hopeful_future=CES_DC_8,
+         failure_life=CES_DC_9,
+         fearful=CES_DC_10,
+         sleep_restless=CES_DC_11,
+         happy=CES_DC_12,
+         talked_less_usual=CES_DC_13,
+         felt_lonely=CES_DC_14,
+         people_unfriendly=CES_DC_15,
+         enjoyed_life=CES_DC_16,
+         crying_spells=CES_DC_17,
+         felt_sad=CES_DC_18,
+         felt_people_dislike_me=CES_DC_19,
+         couldnt_get_going=CES_DC_20,
+         rarely_none_total=999,
+         occasionally_total=999,
+         some_little_total=999,
+         most_time_total=999,
+         cesd_score=ifelse(!is.na(CES_DC_total),CES_DC_total,"999"))
+
+ndar_cesdc_data <- left_join(ndar_key,ndar_cesdc_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("CES",ignore.case = FALSE),-dob,-survey_date,-survey_type,-survey_name,-tagid,-anontagid,-ID,-guid)
+cesdc_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/ces_d01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+cesdc_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/ces_d01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+cesdc_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/ces_d01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+cesdc_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/ces_d01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+cesdc_temp_df<-data.frame(cesdc_temp)
+ndar_cesdc_data<-rbind(cesdc_temp_df,ndar_cesdc_data)
+
+part2<-colnames(ndar_cesdc_data)
+part3<-as.matrix(ndar_cesdc_data)
+colnames(part3)<-NULL
+together<-rbind(cesdc_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/ces_d01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,cesdc_df_header,cesdc_temp,cesdc_temp_df,CESDC,CESDC_Wave1,CESDC_Wave1_means_graph,CESDC_Wave1_totals_graph)
+```
