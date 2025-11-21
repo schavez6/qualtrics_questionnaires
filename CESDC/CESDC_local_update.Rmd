@@ -1,0 +1,157 @@
+Prepare CES-DC 
+```{r}
+CESDC<-left_join(filter(cleaned_survey_data, grepl("CES_DC",item)) %>% 
+                   mutate(value=as.numeric(value)) %>% 
+                   filter(!is.na(value)) %>% 
+                   distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                   spread(item,value),redcap_cleaned %>%
+                   filter(!is.na(dob),!is.na(sa_date)) %>%
+                   dplyr::select(tagid, sa_date, sb_date, sos_session_date, dob),by="tagid")
+
+CESDC <- filter(cleaned_survey_data, grepl("CES_DC",item)) %>% 
+                   mutate(value=as.numeric(value)) %>% 
+                   filter(!is.na(value)) %>% 
+                   distinct(tagid,item,value,survey_name,.keep_all = FALSE)
+
+CESDC_Wave1<-left_join(CESDC,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>% 
+  dplyr::select(-value) %>%
+  #mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+   #                         ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+    #                               ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+     #                                     ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+      #                                    ))))) %>%
+  mutate(survey_date=qualtrics_date) %>% 
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>%
+  mutate(CES_DC_4=ifelse(CES_DC_4==0,3,
+                         ifelse(CES_DC_4==1,2,
+                                ifelse(CES_DC_4==2,1,
+                                       ifelse(CES_DC_4==3,0,
+                                              NA)))),
+         CES_DC_8=ifelse(CES_DC_8==0,3,
+                         ifelse(CES_DC_8==1,2,
+                                ifelse(CES_DC_8==2,1,
+                                       ifelse(CES_DC_8==3,0,
+                                              NA)))),
+         CES_DC_12=ifelse(CES_DC_12==0,3,
+                          ifelse(CES_DC_12==1,2,
+                                 ifelse(CES_DC_12==2,1,
+                                        ifelse(CES_DC_12==3,0,
+                                               NA)))),
+         CES_DC_16=ifelse(CES_DC_16==0,3,
+                          ifelse(CES_DC_16==1,2,
+                                 ifelse(CES_DC_16==2,1,
+                                        ifelse(CES_DC_16==3,0,
+                                               NA))))) %>%
+  mutate(
+    CES_DC_C=20,
+    CES_DC_missing=rowSums(is.na(cbind(CES_DC_1,CES_DC_2,CES_DC_3,CES_DC_4,CES_DC_5,CES_DC_6,CES_DC_7,CES_DC_8,CES_DC_9,CES_DC_10,CES_DC_11,CES_DC_12,CES_DC_13,CES_DC_14,CES_DC_15,CES_DC_16,CES_DC_17,CES_DC_18,CES_DC_19,CES_DC_20))),
+    CES_DC_missing_perc=100*(rowSums(is.na(cbind(CES_DC_1,CES_DC_2,CES_DC_3,CES_DC_4,CES_DC_5,CES_DC_6,CES_DC_7,CES_DC_8,CES_DC_9,CES_DC_10,CES_DC_11,CES_DC_12,CES_DC_13,CES_DC_14,CES_DC_15,CES_DC_16,CES_DC_17,CES_DC_18,CES_DC_19,CES_DC_20)))/20),
+    CES_DC_mean=rowMeans(cbind(CES_DC_1,CES_DC_2,CES_DC_3,CES_DC_4,CES_DC_5,CES_DC_6,CES_DC_7,CES_DC_8,CES_DC_9,CES_DC_10,CES_DC_11,CES_DC_12,CES_DC_13,CES_DC_14,CES_DC_15,CES_DC_16,CES_DC_17,CES_DC_18,CES_DC_19,CES_DC_20), na.rm=T),
+    CES_DC_total=rowSums(cbind(CES_DC_1,CES_DC_2,CES_DC_3,CES_DC_4,CES_DC_5,CES_DC_6,CES_DC_7,CES_DC_8,CES_DC_9,CES_DC_10,CES_DC_11,CES_DC_12,CES_DC_13,CES_DC_14,CES_DC_15,CES_DC_16,CES_DC_17,CES_DC_18,CES_DC_19,CES_DC_20), na.rm=F)) %>%
+  mutate(CES_DC_total_75perc=ifelse(CES_DC_missing_perc <= 25,CES_DC_mean*20,NA))
+
+## Save it
+CESDC_Wave1_outdf <- CESDC_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE|SOS|TAG2",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+CESDC_Wave1_TAG2_MidWaveHome_outdf <- CESDC_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE|SOS|in-lab",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+CESDC_Wave1_TAG2_Sess2InLab_outdf <- CESDC_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE|SOS|S2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CESDC_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CESDC_Wave1.csv"))
+write.csv(CESDC_Wave1_TAG2_MidWaveHome_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CESDC_Wave1_TAG2_MidWaveHome.csv"))
+write.csv(CESDC_Wave1_TAG2_Sess2InLab_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CESDC_Wave1_TAG2_Sess2InLab.csv"))
+
+CESDC_Wave2_outdf <- CESDC_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+CESDC_Wave1add_p1_outdf <- CESDC_Wave2_outdf[CESDC_Wave2_outdf$survey_date=="2017-08-12",]
+CESDC_Wave1add_p2_outdf <- CESDC_Wave2_outdf[CESDC_Wave2_outdf$survey_date=="2017-12-12",]
+CESDC_Wave2_outdf <- CESDC_Wave2_outdf[CESDC_Wave2_outdf$survey_date!="2017-08-12",]
+CESDC_Wave2_outdf <- CESDC_Wave2_outdf[CESDC_Wave2_outdf$survey_date!="2017-12-12",]
+write.csv(CESDC_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CESDC_Wave2.csv"))
+
+#fix CESDC W1
+CESDC_Wave1_outdf <- rbind(CESDC_Wave1_outdf,CESDC_Wave1add_p1_outdf,CESDC_Wave1add_p2_outdf)
+write.csv(CESDC_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CESDC_Wave1.csv"))
+
+CESDC_Wave2_TAG2_MidWaveHome_outdf <- CESDC_Wave1 %>% filter(grepl("W2S2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+CESDC_Wave2_TAG2_Sess2InLab_outdf <- CESDC_Wave1 %>% filter(grepl("W2 in-lab",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+
+write.csv(CESDC_Wave2_TAG2_MidWaveHome_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CESDC_Wave2_TAG2_MidWaveHome.csv"))
+write.csv(CESDC_Wave2_TAG2_Sess2InLab_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CESDC_Wave2_TAG2_Sess2InLab.csv"))
+
+CESDC_Wave3_outdf <- CESDC_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(CESDC_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CESDC_Wave3.csv"))
+
+#not yet...
+CESDC_Wave3_TAG2_MidWaveHome_outdf <- CESDC_Wave1 %>% filter(grepl("W3S2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+CESDC_Wave3_TAG2_Sess2InLab_outdf <- CESDC_Wave1 %>% filter(grepl("W3 in-lab",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#add write commands for tag2w3 when available
+
+CESDC_Wave4_outdf <- CESDC_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(CESDC_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/CESDC_Wave4.csv"))
+
+CESDC_Wave5_outdf <- CESDC_Wave1 %>% filter(grepl("W5|TAG2",survey_name)) %>% 
+  filter(grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(CESDC_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/CESDC_Wave5.csv"))
+
+CESDC_Wave6_outdf <- CESDC_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(CESDC_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/CESDC_Wave6.csv"))
+
+CESDC_WaveSOS_outdf <- CESDC_Wave1 %>% filter(grepl("SOS",survey_name)) 
+write.csv(CESDC_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/CESDC_WaveSOS.csv"))
+
+CESDC_WaveACE1_outdf <- CESDC_Wave1 %>% filter(grepl("Month 1",survey_name)) 
+write.csv(CESDC_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/CESDC_WaveACE1.csv"))
+
+CESDC_WaveACE2_outdf <- CESDC_Wave1 %>% filter(grepl("Month 2",survey_name)) 
+write.csv(CESDC_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/CESDC_WaveACE2.csv"))
+
+CESDC_WaveACE3_outdf <- CESDC_Wave1 %>% filter(grepl("Month 3",survey_name)) 
+write.csv(CESDC_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/CESDC_WaveACE3.csv"))
+
+#for vic
+#CESDC_Wave1_outdf$wave <- 1
+#CESDC_Wave2_outdf$wave <- 2
+#CESDC_Wave3_outdf$wave <- 3
+#CESDC_Wave4_outdf$wave <- 4
+#CESDC_Wave5_outdf$wave <- 5
+#CESDC_Wave6_outdf$wave <- 6
+#cesdc_allwaves_sam <- rbind(CESDC_Wave1_outdf,CESDC_Wave2_outdf) %>% rbind(CESDC_Wave3_outdf) %>% rbind(CESDC_Wave4_outdf) %>% rbind(CESDC_Wave5_outdf) %>% rbind(CESDC_Wave6_outdf) %>% dplyr::arrange(tagid) %>% select(tagid,wave,CES_DC_mean,CES_DC_total)
+#write.csv(cesdc_allwaves_sam,paste0(workdir,'Questionnaires/cesdc_allwaves.csv'),row.names=F)
+
+CESDC_Wave1_outdf$wave <- 1
+CESDC_Wave1_TAG2_MidWaveHome_outdf$wave <- "1_home"
+CESDC_Wave1_TAG2_Sess2InLab_outdf$wave <- "1_lab"
+CESDC_Wave2_outdf$wave <- 2
+CESDC_Wave2_TAG2_MidWaveHome_outdf$wave <- "2_home"
+CESDC_Wave2_TAG2_Sess2InLab_outdf$wave <- "2_lab"
+CESDC_Wave3_outdf$wave <- 3
+#CESDC_Wave3_TAG2_MidWaveHome_outdf$wave <- "3_home"
+#CESDC_Wave3_TAG2_Sess2InLab_outdf$wave <- "3_lab"
+CESDC_Wave4_outdf$wave <- 4
+CESDC_Wave5_outdf$wave <- 5
+CESDC_Wave6_outdf$wave <- 6
+CESDC_WaveSOS_outdf$wave <- "SOS"
+CESDC_WaveACE1_outdf$wave <- "ACE1"
+CESDC_WaveACE2_outdf$wave <- "ACE2"
+CESDC_WaveACE3_outdf$wave <- "ACE3"
+
+#add tag2w3 to command below when available
+CESDC_alldata <- rbind(CESDC_Wave1_outdf,CESDC_Wave2_outdf,CESDC_Wave3_outdf,
+                       CESDC_Wave4_outdf,CESDC_Wave5_outdf,CESDC_Wave6_outdf,
+                       CESDC_Wave1_TAG2_MidWaveHome_outdf,CESDC_Wave1_TAG2_Sess2InLab_outdf,
+                       CESDC_Wave2_TAG2_MidWaveHome_outdf,CESDC_Wave2_TAG2_Sess2InLab_outdf,
+                       CESDC_WaveSOS_outdf,CESDC_WaveACE1_outdf,CESDC_WaveACE2_outdf,
+                       CESDC_WaveACE3_outdf)
+
+CESDC_alldata <- CESDC_alldata[with(CESDC_alldata, order(tagid, survey_date)),]
+CESDC_alldata <- CESDC_alldata %>% relocate(tagid, wave, survey_date)
+write.csv(CESDC_alldata, file = paste0(workdir,"Qualtrics_Output/Long/CESDC_AllObs_Chronological.csv"))
+```
