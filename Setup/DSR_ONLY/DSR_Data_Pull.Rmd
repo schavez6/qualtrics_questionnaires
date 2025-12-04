@@ -149,9 +149,9 @@ More cleaning...
 
 ```{r Clean qualtrics, message=FALSE, warning=FALSE, include=FALSE}
 #long_survey_data should already be a data table, but just making sure:
-cleaned_survey_data <- as.data.table(long_survey_data) %>% dplyr::select(SID, item, value, survey_name) #use for everything except dsr
+#cleaned_survey_data <- as.data.table(long_survey_data) %>% dplyr::select(SID, item, value, survey_name) #use for everything except dsr
 
-#cleaned_survey_data <- as.data.table(long_survey_data) %>% dplyr::select(SID, item, value, survey_name, StartDate) #use for daily surveys
+cleaned_survey_data <- as.data.table(long_survey_data) %>% dplyr::select(SID, item, value, survey_name, StartDate) #use for daily surveys
 
 setnames(cleaned_survey_data, old = 'SID', new = 'tagid')
 
