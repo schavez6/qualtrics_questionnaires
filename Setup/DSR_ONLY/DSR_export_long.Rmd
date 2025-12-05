@@ -43,8 +43,4 @@ write.csv(DSR_W1_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave1/DSR_Wave1_T
 write.csv(DSR_W2_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave2/DSR_Wave2_TAG2_alldata.csv"))
 
 write.csv(DSR_W3_TAG2, file = paste0(workdir,"Qualtrics_Output/Wave3/DSR_Wave3_TAG2_alldata.csv"))
-
-DSR_W3_wide <- DSR_W3 %>% 
-  select(-survey_name) %>% spread(item, value) #%>% select(-(4:17))
-write.csv(DSR_W3, file = paste0(workdir,"Qualtrics_Output/Wave3/DSR_Wave3_wide.csv"))
 ```
