@@ -1,0 +1,97 @@
+Prepare R-SCS-C
+```{r}
+RSCS<-left_join(filter(cleaned_survey_data, grepl("R_SCS",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                  group_by(tagid,item,survey_name) %>%
+                  mutate(nrow = n(),
+                         value = ifelse(nrow > 1, NA, value)) %>%
+                  distinct(tagid,item,survey_name,value,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, sos_session_date, dob),by="tagid")
+
+if (length(RSCS$tagid) == length(unique(RSCS$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+TAG023_special<-left_join(filter(cleaned_survey_data, grepl("R_SCS",item)) %>%
+                            mutate(value=as.numeric(value)) %>% 
+                            filter(!is.na(value)) %>%
+                            filter(!value=="") %>%
+                            filter(tagid=="TAG023") %>%
+                            distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                            spread(item,value),
+                          redcap_cleaned %>%
+                            filter(!is.na(dob),!is.na(sa_date),tagid=="TAG023") %>%
+                            dplyr::select(tagid, sa_date, sb_date, dob),by="tagid") %>%
+  mutate(survey_name="TAG - Sess 1 - V1 - (EATQ-R_2 & on)")
+
+RSCS <- bind_rows(RSCS %>% filter(!tagid=="TAG023"),TAG023_special)
+  
+
+if (length(RSCS$tagid) == length(unique(RSCS$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+RSCS_Wave1<-left_join(RSCS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V4 - Current",sa_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                                   ifelse(survey_name=="TAG - Sess 1 - V2",sa_date,
+                                          ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date))
+                                                 ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>%
+  mutate(RSCS_publicsc_total=rowSums(cbind(R_SCS_C_1,R_SCS_C_2,R_SCS_C_3,R_SCS_C_7,R_SCS_C_10,R_SCS_C_12,R_SCS_C_14,
+                                      R_SCS_C_15,R_SCS_C_16,R_SCS_C_21,R_SCS_C_28), na.rm=F),
+         RSCS_privatesc_total=rowSums(cbind(R_SCS_C_4,R_SCS_C_5,R_SCS_C_6,R_SCS_C_8,R_SCS_C_9,R_SCS_C_11,R_SCS_C_20,
+                                       R_SCS_C_22,R_SCS_C_23,R_SCS_C_24,R_SCS_C_27), na.rm=F),
+         RSCS_socanx_total=rowSums(cbind(R_SCS_C_13,R_SCS_C_17,R_SCS_C_18,R_SCS_C_19,R_SCS_C_25,R_SCS_C_26,R_SCS_C_29), na.rm=F),
+         RSCS_publicsc_mean=rowMeans(cbind(R_SCS_C_1,R_SCS_C_2,R_SCS_C_3,R_SCS_C_7,R_SCS_C_10,R_SCS_C_12,R_SCS_C_14,
+                                      R_SCS_C_15,R_SCS_C_16,R_SCS_C_21,R_SCS_C_28), na.rm=T),
+         RSCS_privatesc_mean=rowMeans(cbind(R_SCS_C_4,R_SCS_C_5,R_SCS_C_6,R_SCS_C_8,R_SCS_C_9,R_SCS_C_11,R_SCS_C_20,
+                                       R_SCS_C_22,R_SCS_C_23,R_SCS_C_24,R_SCS_C_27), na.rm=T),
+         RSCS_socanx_mean=rowMeans(cbind(R_SCS_C_13,R_SCS_C_17,R_SCS_C_18,R_SCS_C_19,R_SCS_C_25,R_SCS_C_26,R_SCS_C_29), na.rm=T))
+
+## Save it
+RSCS_Wave1_outdf <- RSCS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+RSCS_Wave1_TAG2_outdf <- RSCS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(RSCS_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/RSCS_Wave1.csv"))
+write.csv(RSCS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/RSCS_Wave1_TAG2.csv"))
+
+RSCS_Wave2_outdf <- RSCS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(RSCS_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/RSCS_Wave2.csv"))
+
+RSCS_Wave2_TAG2_outdf <- RSCS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(RSCS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/RSCS_Wave2_TAG2.csv"))
+
+RSCS_Wave3_outdf <- RSCS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(RSCS_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/RSCS_Wave3.csv"))
+
+RSCS_Wave3_TAG2_outdf <- RSCS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(RSCS_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/RSCS_Wave3_TAG2.csv"))
+
+RSCS_Wave4_outdf <- RSCS_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(RSCS_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/RSCS_Wave4.csv"))
+
+RSCS_Wave5_outdf <- RSCS_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(RSCS_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/RSCS_Wave5.csv"))
+
+RSCS_Wave6_outdf <- RSCS_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(RSCS_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/RSCS_Wave6.csv"))
+
+RSCS_WaveSOS_outdf <- RSCS_Wave1 %>% filter(grepl("SOS",survey_name)) 
+write.csv(RSCS_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/RSCS_WaveSOS.csv"))
+```
