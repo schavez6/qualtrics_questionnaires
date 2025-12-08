@@ -1,0 +1,81 @@
+Prepare INCOM
+```{r}
+INCOM<-left_join(filter(cleaned_survey_data, grepl("INCOM",item)) %>% 
+                   mutate(value=as.numeric(value)) %>% 
+                   filter(!is.na(value)) %>% 
+                   distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                   spread(item,value),
+                 redcap_cleaned %>%
+                   filter(!is.na(dob),!is.na(sa_date)) %>%
+                   dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+INCOM_Wave1<-left_join(INCOM,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>% 
+  dplyr::select(-value) %>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V4 - Current",sa_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                                   ifelse(survey_name=="TAG - Sess 1 - V2",sa_date,
+                                          ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 )))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(INCOM_6=ifelse(INCOM_6==1,5,
+                         ifelse(INCOM_6==2,4,
+                                ifelse(INCOM_6==3,3,
+                                       ifelse(INCOM_6==4,2,
+                                              ifelse(INCOM_6==5,1,
+                                                     INCOM_6))))),
+         INCOM_10=ifelse(INCOM_10==1,5,
+                         ifelse(INCOM_10==2,4,
+                                ifelse(INCOM_10==3,3,
+                                       ifelse(INCOM_10==4,2,
+                                              ifelse(INCOM_10==5,1,
+                                                     INCOM_10)))))) %>%
+  mutate(INCOM_abilities_N=6,
+         INCOM_abilities_missing=rowSums(is.na(cbind(INCOM_1,INCOM_2,INCOM_3,
+                                                     INCOM_4,INCOM_5,INCOM_6))),
+         INCOM_abilities_missing_perc=100*(rowSums(is.na(cbind(INCOM_1,INCOM_2,INCOM_3,
+                                                     INCOM_4,INCOM_5,INCOM_6)))/6),
+         INCOM_abilities_total=rowSums(cbind(INCOM_1,INCOM_2,INCOM_3,
+                                             INCOM_4,INCOM_5,INCOM_6), na.rm = F),
+         INCOM_abilities_mean=rowMeans(cbind(INCOM_1,INCOM_2,INCOM_3,
+                                             INCOM_4,INCOM_5,INCOM_6), na.rm = T),
+         INCOM_opinions_N=5,
+         INCOM_opinions_missing=rowSums(is.na(cbind(INCOM_7,INCOM_8,INCOM_9,
+                                                     INCOM_10,INCOM_11))),
+         INCOM_opinions_missing_perc=100*(rowSums(is.na(cbind(INCOM_7,INCOM_8,INCOM_9,
+                                                     INCOM_10,INCOM_11)))/5),
+         INCOM_opinions_total=rowSums(cbind(INCOM_7,INCOM_8,INCOM_9,
+                                                     INCOM_10,INCOM_11), na.rm = F),
+         INCOM_opinions_mean=rowMeans(cbind(INCOM_7,INCOM_8,INCOM_9,
+                                                     INCOM_10,INCOM_11), na.rm = T))
+
+## Save it
+INCOM_Wave1_TAG2_outdf <- INCOM_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(INCOM_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/INCOM_Wave1_TAG2.csv"))
+
+INCOM_Wave2_TAG2_outdf <- INCOM_Wave1 %>% filter(grepl("W2",survey_name))  %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(INCOM_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/INCOM_Wave2_TAG2.csv"))
+
+INCOM_Wave3_outdf <- INCOM_Wave1 %>% filter(grepl("W3",survey_name))  %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(INCOM_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/INCOM_Wave3.csv"))
+
+#not yet...
+INCOM_Wave3_TAG2_outdf <- INCOM_Wave1 %>% filter(grepl("W3",survey_name))  %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(INCOM_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/INCOM_Wave3_TAG2.csv"))
+
+INCOM_Wave4_outdf <- INCOM_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(INCOM_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/INCOM_Wave4.csv"))
+
+INCOM_Wave5_outdf <- INCOM_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(INCOM_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/INCOM_Wave5.csv"))
+
+INCOM_Wave6_outdf <- INCOM_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(INCOM_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/INCOM_Wave6.csv"))
+```
