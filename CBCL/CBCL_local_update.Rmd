@@ -1,0 +1,64 @@
+Prepare Parent CBCL #note: this is parent-report
+```{r}
+x <- c("Sport","Hobb","Club","Chore","Friends","Get_Along","Grades","Other_sub","Specialed","What","Rep","Reasons","School_prob","Disability",
+       "Best","VIII","P_","How_Well")
+
+CBCL<-left_join(filter(cleaned_survey_data, grepl("Parent",survey_name)) %>%
+                  filter(grepl(paste(x, collapse = "|"),item)) %>%
+                  filter(!is.na(value), !value=="") %>%
+                  distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                    #filter(!tagid=="TAG110") %>% 
+                  spread(item,value),
+                redcap_cleaned %>%
+                  filter(!is.na(dob),!is.na(sa_date)) %>%
+                  dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+#need to fix tag 110.  w1 accidentally administered w2 parent qs
+
+if (length(CBCL$tagid) == length(unique(CBCL$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+CBCL_Wave1<-left_join(CBCL,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Parent Questionnaires V1",sa_date,
+                            ifelse(survey_name=="TAG - Parent Questionnaires - V2 - Current",sa_date,
+                                   as.character(qualtrics_date)
+                                          ))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) 
+
+## Save it
+CBCL_Wave1_outdf <- CBCL_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+CBCL_Wave1_TAG2_outdf <- CBCL_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CBCL_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CBCL_Wave1.csv"))
+write.csv(CBCL_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CBCL_Wave1_TAG2.csv"))
+
+CBCL_Wave2_outdf <- CBCL_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(CBCL_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CBCL_Wave2.csv"))
+
+CBCL_Wave2_TAG2_outdf <- CBCL_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CBCL_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CBCL_Wave2_TAG2.csv"))
+
+CBCL_Wave3_outdf <- CBCL_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(CBCL_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CBCL_Wave3.csv"))
+
+CBCL_Wave3_TAG2_outdf <- CBCL_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CBCL_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CBCL_Wave3_TAG2.csv"))
+
+CBCL_Wave4_outdf <- CBCL_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(CBCL_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/CBCL_Wave4.csv"))
+
+CBCL_Wave5_outdf <- CBCL_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(CBCL_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/CBCL_Wave5.csv"))
+
+CBCL_Wave6_outdf <- CBCL_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(CBCL_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/CBCL_Wave6.csv"))
+```
