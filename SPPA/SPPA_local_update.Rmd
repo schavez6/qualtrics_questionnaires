@@ -1,0 +1,310 @@
+Prepare SPPA
+```{r}
+SPPA<-left_join(filter(cleaned_survey_data, grepl("SPPA",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>% 
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, sos_session_date, dob),by="tagid")
+
+if (length(SPPA$tagid) == length(unique(SPPA$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+SPPA <- SPPA %>% filter(!(tagid=="TAG145" & survey_name=="TAG - Home Qs - V3 - with SID embedded"))
+
+if (length(SPPA$tagid) == length(unique(SPPA$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+SPPA_Wave1<-left_join(SPPA,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                            ))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>%
+  mutate(ha1=ifelse(SPPA_1==1 & SPPA_2==2,4,
+                    ifelse(SPPA_1==1 & SPPA_2==1,3,
+                           ifelse(SPPA_1==2 & SPPA_2==1,2,
+                                  ifelse(SPPA_1==2 & SPPA_2==2,1,
+                                         NA)))),
+         ha2=ifelse(SPPA_3==1 & SPPA_4==2,1,
+                    ifelse(SPPA_3==1 & SPPA_4==1,2,
+                           ifelse(SPPA_3==2 & SPPA_4==1,3,
+                                  ifelse(SPPA_3==2 & SPPA_4==2,4,
+                                         NA)))),
+         ha3=ifelse(SPPA_5==1 & SPPA_6==2,4,
+                    ifelse(SPPA_5==1 & SPPA_6==1,3,
+                           ifelse(SPPA_5==2 & SPPA_6==1,2,
+                                  ifelse(SPPA_5==2 & SPPA_6==2,1,
+                                         NA)))),
+         ha4=ifelse(SPPA_7==1 & SPPA_8==2,1,
+                    ifelse(SPPA_7==1 & SPPA_8==1,2,
+                           ifelse(SPPA_7==2 & SPPA_8==1,3,
+                                  ifelse(SPPA_7==2 & SPPA_8==2,4,
+                                         NA)))),
+         ha6=ifelse(SPPA_71==1 & SPPA_RA_72==3,4,
+                    ifelse(SPPA_71==1 & SPPA_RA_72==2,3,
+                           ifelse(SPPA_71==2 & SPPA_RA_72==2,2,
+                                  ifelse(SPPA_71==2 & SPPA_RA_72==3,1,
+                                         NA)))),
+         ha7=ifelse(SPPA_9==1 & SPPA_10==2,4,
+                    ifelse(SPPA_9==1 & SPPA_10==1,3,
+                           ifelse(SPPA_9==2 & SPPA_10==1,2,
+                                  ifelse(SPPA_9==2 & SPPA_10==2,1,
+                                         NA)))),
+         ha8=ifelse(SPPA_11==1 & SPPA_12==2,4,
+                    ifelse(SPPA_11==1 & SPPA_12==1,3,
+                           ifelse(SPPA_11==2 & SPPA_12==1,2,
+                                  ifelse(SPPA_11==2 & SPPA_12==2,1,
+                                         NA)))),
+         ha9=ifelse(SPPA_13==1 & SPPA_14==2,1,
+                    ifelse(SPPA_13==1 & SPPA_14==1,2,
+                           ifelse(SPPA_13==2 & SPPA_14==1,3,
+                                  ifelse(SPPA_13==2 & SPPA_14==2,4,
+                                         NA)))),
+         ha10=ifelse(SPPA_15==1 & SPPA_16==2,1,
+                     ifelse(SPPA_15==1 & SPPA_16==1,2,
+                            ifelse(SPPA_15==2 & SPPA_16==1,3,
+                                   ifelse(SPPA_15==2 & SPPA_16==2,4,
+                                          NA)))),
+         ha11=ifelse(SPPA_17==1 & SPPA_18==2,4,
+                     ifelse(SPPA_17==1 & SPPA_18==1,3,
+                            ifelse(SPPA_17==2 & SPPA_18==1,2,
+                                   ifelse(SPPA_17==2 & SPPA_18==2,1,
+                                          NA)))),
+         ha12=ifelse(SPPA_19==1 & SPPA_20==2,4,
+                     ifelse(SPPA_19==1 & SPPA_20==1,3,
+                            ifelse(SPPA_19==2 & SPPA_20==1,2,
+                                   ifelse(SPPA_19==2 & SPPA_20==2,1,
+                                          NA)))),
+         ha13=ifelse(SPPA_21==1 & SPPA_22==2,1,
+                     ifelse(SPPA_21==1 & SPPA_22==1,2,
+                            ifelse(SPPA_21==2 & SPPA_22==1,3,
+                                   ifelse(SPPA_21==2 & SPPA_22==2,4,
+                                          NA)))),
+         ha15=ifelse(SPPA_RA_73==1 & SPPA_RA_74==2,1,
+                     ifelse(SPPA_RA_73==1 & SPPA_RA_74==1,2,
+                            ifelse(SPPA_RA_73==2 & SPPA_RA_74==1,3,
+                                   ifelse(SPPA_RA_73==2 & SPPA_RA_74==2,4,
+                                          NA)))),
+         ha16=ifelse(SPPA_23==1 & SPPA_24==2,1,
+                     ifelse(SPPA_23==1 & SPPA_24==1,2,
+                            ifelse(SPPA_23==2 & SPPA_24==1,3,
+                                   ifelse(SPPA_23==2 & SPPA_24==2,4,
+                                          NA)))),
+         ha17=ifelse(SPPA_25==1 & SPPA_26==2,1,
+                     ifelse(SPPA_25==1 & SPPA_26==1,2,
+                            ifelse(SPPA_25==2 & SPPA_26==1,3,
+                                   ifelse(SPPA_25==2 & SPPA_26==2,4,
+                                          NA)))),
+         ha18=ifelse(SPPA_27==1 & SPPA_28==2,1,
+                     ifelse(SPPA_27==1 & SPPA_28==1,2,
+                            ifelse(SPPA_27==2 & SPPA_28==1,3,
+                                   ifelse(SPPA_27==2 & SPPA_28==2,4,
+                                          NA)))),
+         ha19=ifelse(SPPA_29==1 & SPPA_30==2,4,
+                     ifelse(SPPA_29==1 & SPPA_30==1,3,
+                            ifelse(SPPA_29==2 & SPPA_30==1,2,
+                                   ifelse(SPPA_29==2 & SPPA_30==2,1,
+                                          NA)))),
+         ha20=ifelse(SPPA_31==1 & SPPA_32==2,1,
+                     ifelse(SPPA_31==1 & SPPA_32==1,2,
+                            ifelse(SPPA_31==2 & SPPA_32==1,3,
+                                   ifelse(SPPA_31==2 & SPPA_32==2,4,
+                                          NA)))),
+         ha21=ifelse(SPPA_33==1 & SPPA_34==2,4,
+                     ifelse(SPPA_33==1 & SPPA_34==1,3,
+                            ifelse(SPPA_33==2 & SPPA_34==1,2,
+                                   ifelse(SPPA_33==2 & SPPA_34==2,1,
+                                          NA)))),
+         ha22=ifelse(SPPA_35==1 & SPPA_36==2,1,
+                     ifelse(SPPA_35==1 & SPPA_36==1,2,
+                            ifelse(SPPA_35==2 & SPPA_36==1,3,
+                                   ifelse(SPPA_35==2 & SPPA_36==2,4,
+                                          NA)))),
+         ha24=ifelse(SPPA_RA_75==1 & SPPA_RA_76==2,4,
+                     ifelse(SPPA_RA_75==1 & SPPA_RA_76==1,3,
+                            ifelse(SPPA_RA_75==2 & SPPA_RA_76==1,2,
+                                   ifelse(SPPA_RA_75==2 & SPPA_RA_76==2,1,
+                                          NA)))),
+         ha25=ifelse(SPPA_37==1 & SPPA_38==2,4,
+                     ifelse(SPPA_37==1 & SPPA_38==1,3,
+                            ifelse(SPPA_37==2 & SPPA_38==1,2,
+                                   ifelse(SPPA_37==2 & SPPA_38==2,1,
+                                          NA)))),
+         ha26=ifelse(SPPA_39==1 & SPPA_40==2,4,
+                     ifelse(SPPA_39==1 & SPPA_40==1,3,
+                            ifelse(SPPA_39==2 & SPPA_40==1,2,
+                                   ifelse(SPPA_39==2 & SPPA_40==2,1,
+                                          NA)))),
+         ha27=ifelse(SPPA_41==1 & SPPA_42==2,4,
+                     ifelse(SPPA_41==1 & SPPA_42==1,3,
+                            ifelse(SPPA_41==2 & SPPA_42==1,2,
+                                   ifelse(SPPA_41==2 & SPPA_42==2,1,
+                                          NA)))),
+         ha28=ifelse(SPPA_43==1 & SPPA_44==2,1,
+                     ifelse(SPPA_43==1 & SPPA_44==1,2,
+                            ifelse(SPPA_43==2 & SPPA_44==1,3,
+                                   ifelse(SPPA_43==2 & SPPA_44==2,4,
+                                          NA)))),
+         ha29=ifelse(SPPA_45==1 & SPPA_46==2,4,
+                     ifelse(SPPA_45==1 & SPPA_46==1,3,
+                            ifelse(SPPA_45==2 & SPPA_46==1,2,
+                                   ifelse(SPPA_45==2 & SPPA_46==2,1,
+                                          NA)))),
+         ha30=ifelse(SPPA_47==1 & SPPA_48==2,1,
+                     ifelse(SPPA_47==1 & SPPA_48==1,2,
+                            ifelse(SPPA_47==2 & SPPA_48==1,3,
+                                   ifelse(SPPA_47==2 & SPPA_48==2,4,
+                                          NA)))),
+         ha31=ifelse(SPPA_49==1 & SPPA_50==2,4,
+                     ifelse(SPPA_49==1 & SPPA_50==1,3,
+                            ifelse(SPPA_49==2 & SPPA_50==1,2,
+                                   ifelse(SPPA_49==2 & SPPA_50==2,1,
+                                          NA)))),
+         ha33=ifelse(SPPA_RA_77==1 & SPPA_RA_78==3,4,
+                     ifelse(SPPA_RA_77==1 & SPPA_RA_78==2,3,
+                            ifelse(SPPA_RA_77==2 & SPPA_RA_78==2,2,
+                                   ifelse(SPPA_RA_77==2 & SPPA_RA_78==3,1,
+                                          NA)))),
+         ha34=ifelse(SPPA_51==1 & SPPA_52==2,1,
+                     ifelse(SPPA_51==1 & SPPA_52==1,2,
+                            ifelse(SPPA_51==2 & SPPA_52==1,3,
+                                   ifelse(SPPA_51==2 & SPPA_52==2,4,
+                                          NA)))),
+         ha35=ifelse(SPPA_53==1 & SPPA_54==2,1,
+                     ifelse(SPPA_53==1 & SPPA_54==1,2,
+                            ifelse(SPPA_53==2 & SPPA_54==1,3,
+                                   ifelse(SPPA_53==2 & SPPA_54==2,4,
+                                          NA)))),
+         ha36=ifelse(SPPA_55==1 & SPPA_56==2,4,
+                     ifelse(SPPA_55==1 & SPPA_56==1,3,
+                            ifelse(SPPA_55==2 & SPPA_56==1,2,
+                                   ifelse(SPPA_55==2 & SPPA_56==2,1,
+                                          NA)))),
+         ha37=ifelse(SPPA_57==1 & SPPA_58==2,4,
+                     ifelse(SPPA_57==1 & SPPA_58==1,3,
+                            ifelse(SPPA_57==2 & SPPA_58==1,2,
+                                   ifelse(SPPA_57==2 & SPPA_58==2,1,
+                                          NA)))),
+         ha38=ifelse(SPPA_59==1 & SPPA_60==2,4,
+                     ifelse(SPPA_59==1 & SPPA_60==1,3,
+                            ifelse(SPPA_59==2 & SPPA_60==1,2,
+                                   ifelse(SPPA_59==2 & SPPA_60==2,1,
+                                          NA)))),
+         ha39=ifelse(SPPA_61==1 & SPPA_62==2,1,
+                     ifelse(SPPA_61==1 & SPPA_62==1,2,
+                            ifelse(SPPA_61==2 & SPPA_62==1,3,
+                                   ifelse(SPPA_61==2 & SPPA_62==2,4,
+                                          NA)))),
+         ha40=ifelse(SPPA_63==1 & SPPA_64==2,4,
+                     ifelse(SPPA_63==1 & SPPA_64==1,3,
+                            ifelse(SPPA_63==2 & SPPA_64==1,2,
+                                   ifelse(SPPA_63==2 & SPPA_64==2,1,
+                                          NA)))),
+         ha42=ifelse(SPPA_RA_79==1 & SPPA_RA_80==2,1,
+                     ifelse(SPPA_RA_79==1 & SPPA_RA_80==1,2,
+                            ifelse(SPPA_RA_79==4 & SPPA_RA_80==1,3,
+                                   ifelse(SPPA_RA_79==4 & SPPA_RA_80==2,4,
+                                          NA)))),
+         ha43=ifelse(SPPA_65==1 & SPPA_66==2,4,
+                     ifelse(SPPA_65==1 & SPPA_66==1,3,
+                            ifelse(SPPA_65==2 & SPPA_66==1,2,
+                                   ifelse(SPPA_65==2 & SPPA_66==2,1,
+                                          NA)))),
+         ha44=ifelse(SPPA_67==1 & SPPA_68==2,1,
+                     ifelse(SPPA_67==1 & SPPA_68==1,2,
+                            ifelse(SPPA_67==2 & SPPA_68==1,3,
+                                   ifelse(SPPA_67==2 & SPPA_68==2,4,
+                                          NA)))),
+         ha45=ifelse(SPPA_69==1 & SPPA_70==2,4,
+                     ifelse(SPPA_69==1 & SPPA_70==1,3,
+                            ifelse(SPPA_69==2 & SPPA_70==1,2,
+                                   ifelse(SPPA_69==2 & SPPA_70==2,1,
+                                          NA))))) %>%
+  mutate(SPPA_scholasticcomp_total=rowSums(cbind(ha1,ha10,ha19,ha28,ha37),na.rm=F),
+         SPPA_socialcomp_total=rowSums(cbind(ha2,ha11,ha20,ha29,ha38),na.rm=F),
+         SPPA_athleticcomp_total=rowSums(cbind(ha3,ha12,ha21,ha30,ha39),na.rm=F),
+         SPPA_physicalappear_total=rowSums(cbind(ha4,ha13,ha22,ha31,ha40),na.rm=F),
+         SPPA_romanticappeal_total=rowSums(cbind(ha6,ha15,ha24,ha33,ha42),na.rm=F),
+         SPPA_behavconduct_total=rowSums(cbind(ha7,ha16,ha25,ha34,ha43),na.rm=F),
+         SPPA_closefriend_total=rowSums(cbind(ha8,ha17,ha26,ha35,ha44),na.rm=F),
+         SPPA_globalselfworth_total=rowSums(cbind(ha9,ha18,ha27,ha36,ha45),na.rm=F),
+         SPPA_scholasticcomp_mean=round(rowMeans(cbind(ha1,ha10,ha19,ha28,ha37),na.rm=T),3),
+         SPPA_socialcomp_mean=round(rowMeans(cbind(ha2,ha11,ha20,ha29,ha38),na.rm=T),3),
+         SPPA_athleticcomp_mean=round(rowMeans(cbind(ha3,ha12,ha21,ha30,ha39),na.rm=T),3),
+         SPPA_physicalappear_mean=round(rowMeans(cbind(ha4,ha13,ha22,ha31,ha40),na.rm=T),3),
+         SPPA_romanticappeal_mean=round(rowMeans(cbind(ha6,ha15,ha24,ha33,ha42),na.rm=T),3),
+         SPPA_behavconduct_mean=round(rowMeans(cbind(ha7,ha16,ha25,ha34,ha43),na.rm=T),3),
+         SPPA_closefriend_mean=round(rowMeans(cbind(ha8,ha17,ha26,ha35,ha44),na.rm=T),3),
+         SPPA_globalselfworth_mean=round(rowMeans(cbind(ha9,ha18,ha27,ha36,ha45),na.rm=T),3),
+         SPPA_scholasticcomp_N=5,
+         SPPA_scholasticcomp_missing=rowSums(is.na(cbind(ha1,ha10,ha19,ha28,ha37))),
+         SPPA_scholasticcomp_missing_perc=100*(rowSums(is.na(cbind(ha1,ha10,ha19,ha28,ha37)))/5),
+         SPPA_socialcomp_N=5,
+         SPPA_socialcomp_missing=rowSums(is.na(cbind(ha2,ha11,ha20,ha29,ha38))),
+         SPPA_socialcomp_missing_perc=100*(rowSums(is.na(cbind(ha2,ha11,ha20,ha29,ha38)))/5),
+         SPPA_athleticcomp_N=5,
+         SPPA_athleticcomp_missing=rowSums(is.na(cbind(ha3,ha12,ha21,ha30,ha39))),
+         SPPA_athleticcomp_missing_perc=100*(rowSums(is.na(cbind(ha3,ha12,ha21,ha30,ha39)))/5),
+         SPPA_physicalappear_N=5,
+         SPPA_physicalappear_missing=rowSums(is.na(cbind(ha4,ha13,ha22,ha31,ha40))),
+         SPPA_physicalappear_missing_perc=100*(rowSums(is.na(cbind(ha4,ha13,ha22,ha31,ha40)))/5),
+         SPPA_romanticappeal_N=5,
+         SPPA_romanticappeal_missing=rowSums(is.na(cbind(ha6,ha15,ha24,ha33,ha42))),
+         SPPA_romanticappeal_missing_perc=100*(rowSums(is.na(cbind(ha6,ha15,ha24,ha33,ha42)))/5),
+         SPPA_behavconduct_N=5,
+         SPPA_behavconduct_missing=rowSums(is.na(cbind(ha7,ha16,ha25,ha34,ha43))),
+         SPPA_behavconduct_missing_perc=100*(rowSums(is.na(cbind(ha7,ha16,ha25,ha34,ha43)))/5),
+         SPPA_closefriend_N=5,
+         SPPA_closefriend_missing=rowSums(is.na(cbind(ha8,ha17,ha26,ha35,ha44))),
+         SPPA_closefriend_missing_perc=100*(rowSums(is.na(cbind(ha8,ha17,ha26,ha35,ha44)))/5),
+         SPPA_globalselfworth_N=5,
+         SPPA_globalselfworth_missing=rowSums(is.na(cbind(ha9,ha18,ha27,ha36,ha45))),
+         SPPA_globalselfworth_missing_perc=100*(rowSums(is.na(cbind(ha9,ha18,ha27,ha36,ha45)))/5))
+
+## Save it
+SPPA_all <- SPPA_Wave1 %>% mutate(wave=ifelse((!grepl("W2|W3|W4|W5|W6|SOS",survey_name)),1, ifelse(grepl("W2",survey_name),2,ifelse(grepl("W3",survey_name),3,ifelse(grepl("W4",survey_name),4,ifelse(grepl("W5",survey_name),5,ifelse(grepl("W6",survey_name),6,ifelse(grepl("SOS",survey_name),"sos",NA))))))))
+write.csv(SPPA_all, file = paste0(workdir,"Qualtrics_Output/Long/sppa_long.csv"))
+
+SPPA_Wave1_outdf <- SPPA_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+SPPA_Wave1_TAG2_outdf <- SPPA_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SPPA_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SPPA_Wave1.csv"))
+write.csv(SPPA_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SPPA_Wave1_TAG2.csv"))
+
+SPPA_Wave2_outdf <- SPPA_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(SPPA_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SPPA_Wave2.csv"))
+
+SPPA_Wave2_TAG2_outdf <- SPPA_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SPPA_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SPPA_Wave2_TAG2.csv"))
+
+SPPA_Wave3_outdf <- SPPA_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(SPPA_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SPPA_Wave3.csv"))
+
+SPPA_Wave3_TAG2_outdf <- SPPA_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SPPA_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SPPA_Wave3_TAG2.csv"))
+
+SPPA_Wave4_outdf <- SPPA_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(SPPA_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/SPPA_Wave4.csv"))
+
+SPPA_Wave5_outdf <- SPPA_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(SPPA_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/SPPA_Wave5.csv"))
+
+SPPA_Wave6_outdf <- SPPA_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(SPPA_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/SPPA_Wave6.csv"))
+
+SPPA_WaveSOS_outdf <- SPPA_Wave1 %>% filter(grepl("SOS",survey_name)) 
+write.csv(SPPA_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/SPPA_WaveSOS.csv"))
+```
