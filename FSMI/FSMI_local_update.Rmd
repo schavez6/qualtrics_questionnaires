@@ -1,0 +1,91 @@
+FSMI
+```{r}
+FSMI<-left_join(filter(cleaned_survey_data, grepl("FSMI",item)) %>%
+                  mutate(value=as.numeric(value)) %>% 
+                  filter(!is.na(value)) %>%
+                  filter(!value=="") %>%
+                  distinct(tagid,item,survey_name,value,.keep_all = FALSE) %>% 
+                  spread(item,value),
+                redcap_cleaned %>%
+                  filter(!is.na(dob),!is.na(sa_date)) %>%
+                  dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+FSMI <- FSMI %>% dplyr::select(-"FSMI_7_43",-"FSMI_7_44",-"FSMI_7_45",
+                                         -"FSMI_7_46",-"FSMI_7_47",-"FSMI_7_48")
+fsmi.fixed <- FSMI
+fsmi.fixed <- fsmi.fixed %>%
+  dplyr::rename(FSMI_7_43 = FSMI_7_49, FSMI_7_44 = FSMI_7_50, FSMI_7_45 = FSMI_7_51, 
+         FSMI_7_46 = FSMI_7_52, FSMI_7_47 = FSMI_7_53, FSMI_7_48 = FSMI_7_54, 
+         FSMI_7_49 = FSMI_7_55, FSMI_7_50 = FSMI_7_56, FSMI_7_51 = FSMI_7_57, 
+         FSMI_7_52 = FSMI_7_58, FSMI_7_53 = FSMI_7_59, FSMI_7_54 = FSMI_7_60)
+
+#Reverse-Scoring
+fsmi.reversed <- fsmi.fixed
+fsmi.reversed[,c("FSMI_7_3","FSMI_7_10","FSMI_7_11","FSMI_7_12","FSMI_7_16","FSMI_7_36","FSMI_7_39","FSMI_7_40","FSMI_7_41","FSMI_7_45","FSMI_7_46","FSMI_7_47","FSMI_7_48")] <- 8-fsmi.fixed[,c("FSMI_7_3","FSMI_7_10","FSMI_7_11","FSMI_7_12","FSMI_7_16","FSMI_7_36","FSMI_7_39","FSMI_7_40","FSMI_7_41","FSMI_7_45","FSMI_7_46","FSMI_7_47","FSMI_7_48")]
+
+#Calculating Subscale Scores
+fsmi.clean <- fsmi.reversed
+fsmi.clean$self_protection <- rowMeans(fsmi.clean[,c("FSMI_7_1","FSMI_7_2","FSMI_7_3",
+                                                     "FSMI_7_4","FSMI_7_5","FSMI_7_6")], na.rm = T)
+fsmi.clean$disease_avoidance <- rowMeans(fsmi.clean[,c("FSMI_7_7","FSMI_7_8","FSMI_7_9",
+                                                     "FSMI_7_10","FSMI_7_11","FSMI_7_12")], na.rm = T)
+fsmi.clean$group_affiliation <- rowMeans(fsmi.clean[,c("FSMI_7_13","FSMI_7_14","FSMI_7_15",
+                                                     "FSMI_7_16","FSMI_7_17","FSMI_7_18")], na.rm = T)
+fsmi.clean$exclusion_concern_affiliation <- rowMeans(fsmi.clean[,c("FSMI_7_19","FSMI_7_20","FSMI_7_21",
+                                                     "FSMI_7_22","FSMI_7_23","FSMI_7_24")], na.rm = T)
+fsmi.clean$independence_affiliation <- rowMeans(fsmi.clean[,c("FSMI_7_25","FSMI_7_26","FSMI_7_27",
+                                                     "FSMI_7_28","FSMI_7_29","FSMI_7_30")], na.rm = T)
+fsmi.clean$status <- rowMeans(fsmi.clean[,c("FSMI_7_31","FSMI_7_32","FSMI_7_33",
+                                                     "FSMI_7_34","FSMI_7_35","FSMI_7_36")], na.rm = T)
+fsmi.clean$mate_seeking <- rowMeans(fsmi.clean[,c("FSMI_7_37","FSMI_7_38","FSMI_7_39",
+                                                     "FSMI_7_40","FSMI_7_41","FSMI_7_42")], na.rm = T)
+fsmi.clean$general_mate_retention <- rowMeans(fsmi.clean[,c("FSMI_7_43","FSMI_7_44","FSMI_7_45",
+                                                     "FSMI_7_46","FSMI_7_47","FSMI_7_48")], na.rm = T)
+fsmi.clean$breakup_concern_mate_retention <- rowMeans(fsmi.clean[,c("FSMI_7_49","FSMI_7_50","FSMI_7_51",
+                                                     "FSMI_7_52","FSMI_7_53","FSMI_7_54")], na.rm = T)
+
+FSMI_Wave1<-left_join(fsmi.clean,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=qualtrics_date) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+## Save it
+FSMI_Wave1_TAG2_outdf <- FSMI_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(FSMI_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/FSMI_Wave1_TAG2.csv"))
+
+FSMI_Wave2_TAG2_outdf <- FSMI_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(FSMI_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/FSMI_Wave2_TAG2.csv"))
+
+FSMI_Wave3_outdf <- FSMI_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+write.csv(FSMI_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/FSMI_Wave3.csv"))
+
+#not yet...
+FSMI_Wave3_TAG2_outdf <- FSMI_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(FSMI_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/FSMI_Wave3_TAG2.csv"))
+
+FSMI_Wave4_outdf <- FSMI_Wave1 %>% filter(grepl("W4",survey_name))
+write.csv(FSMI_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/FSMI_Wave4.csv"))
+
+FSMI_Wave5_outdf <- FSMI_Wave1 %>% filter(grepl("W5",survey_name))
+write.csv(FSMI_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/FSMI_Wave5.csv"))
+
+FSMI_Wave6_outdf <- FSMI_Wave1 %>% filter(grepl("W6",survey_name))
+write.csv(FSMI_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/FSMI_Wave6.csv"))
+
+FSMI_WaveSOS_outdf <- FSMI_Wave1 %>% filter(grepl("SOS",survey_name))
+write.csv(FSMI_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/FSMI_WaveSOS.csv"))
+
+#stats
+summary(as.factor(FSMI_Wave1_TAG2_outdf$FSMI_4))
+summary(as.factor(FSMI_Wave2_TAG2_outdf$FSMI_4))
+summary(as.factor(FSMI_Wave3_outdf$FSMI_4))
+summary(as.factor(FSMI_Wave4_outdf$FSMI_4))
+summary(as.factor(FSMI_Wave5_outdf$FSMI_4))
+summary(as.factor(FSMI_Wave6_outdf$FSMI_4))
+```
