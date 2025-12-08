@@ -1,4 +1,4 @@
-Prepare PDS
+Prepare PDS #note: this is self-report
 ```{r}
 PDS<-left_join(filter(cleaned_survey_data, grepl("PDS",item)) %>% 
                  mutate(value=as.numeric(value)) %>% 
