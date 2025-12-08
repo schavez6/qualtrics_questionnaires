@@ -1,0 +1,74 @@
+```{r}
+## Make RDOC ready file
+ndar_rscs_data <- left_join(RSCS_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         comments_misc=ifelse(grepl("Sess 1",survey_name),"Session1",
+                      ifelse(grepl("Session 1",survey_name),"Session1",
+                             ifelse(grepl("Sess 2",survey_name),"Session2",
+                                    ifelse(grepl("Session 2",survey_name),"Session2",
+                                           ifelse(grepl("Home",survey_name),"Home Questionnaires",
+                                                  NA))))),
+         site="University of Oregon",
+         study="Transitions in Adolescent Girls (TAG) Study",
+         #gender="F",
+         rscsc_1=R_SCS_C_1,
+         rscsc_2=R_SCS_C_2,
+         rscsc_3=R_SCS_C_3,
+         rscsc_4=R_SCS_C_4,
+         rscsc_5=R_SCS_C_5,
+         rscsc_6=R_SCS_C_6,
+         rscsc_7=R_SCS_C_7,
+         rscsc_8=R_SCS_C_8,
+         rscsc_9=R_SCS_C_9,
+         rscsc_10=R_SCS_C_10,
+         rscsc_11=R_SCS_C_11,
+         rscsc_12=R_SCS_C_12,
+         rscsc_13=R_SCS_C_13,
+         rscsc_14=R_SCS_C_14,
+         rscsc_15=R_SCS_C_15,
+         rscsc_16=R_SCS_C_16,
+         rscsc_17=R_SCS_C_17,
+         rscsc_18=R_SCS_C_18,
+         rscsc_19=R_SCS_C_19,
+         rscsc_20=R_SCS_C_20,
+         rscsc_21=R_SCS_C_21,
+         rscsc_22=R_SCS_C_22,
+         rscsc_23=R_SCS_C_23,
+         rscsc_24=R_SCS_C_24,
+         rscsc_25=R_SCS_C_25,
+         rscsc_26=R_SCS_C_26,
+         rscsc_27=R_SCS_C_27,
+         rscsc_28=R_SCS_C_28,
+         rscsc_29=R_SCS_C_29,
+         rscsc_publicsc=ifelse(!is.na(RSCS_publicsc_total),RSCS_publicsc_total,999),
+         rscsc_privatesc=ifelse(!is.na(RSCS_privatesc_total),RSCS_privatesc_total,999),
+         rscsc_socanx=ifelse(!is.na(RSCS_socanx_total),RSCS_socanx_total,999))
+
+ndar_rscs_data <- left_join(ndar_key,ndar_rscs_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("SCS",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+rscs_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/rscsc01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+rscs_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/rscsc01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+rscs_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/rscsc01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+rscs_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/rscsc01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+rscs_temp_df<-data.frame(rscs_temp)
+ndar_rscs_data<-rbind(rscs_temp_df,ndar_rscs_data)
+
+part2<-colnames(ndar_rscs_data)
+part3<-as.matrix(ndar_rscs_data)
+colnames(part3)<-NULL
+together<-rbind(rscs_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/rscsc01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,rscs_df_header,rscs_temp,rscs_temp_df,RSCS,RSCS_Wave1_means,RSCS_Wave1,RSCS_Wave1_totals,RSCS_Wave1_totals_graph,
+   TAG023_special)
+
+
+#NOTE: No total score calculated for this questionnaire
+```
