@@ -1,0 +1,550 @@
+Prepare PSS
+```{r}
+PSS<-left_join(filter(cleaned_survey_data, grepl("^PSS",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 mutate(value=ifelse((tagid=="TAG132" & item=="PSS_5"),4,
+                                     ifelse((tagid=="TAG132" & item=="PSS_6"),2,
+                                            ifelse((tagid=="TAG132" & item=="PSS_7"),3,
+                                                   ifelse((tagid=="TAG132" & item=="PSS_9"),2,value))))
+                 ) %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, sos_session_date, dob),by="tagid")
+
+if (length(PSS$tagid) == length(unique(PSS$tagid))){
+  print("No duplicate tagids in data")
+}
+
+PSS_Wave1<-left_join(PSS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V4 - Current",sa_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                          ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 )))))) 
+PSS_Wave1_Session2 <- PSS_Wave1 %>% filter(grepl("W1S2",survey_name))
+PSS_Wave1_Session2b <- PSS_Wave1 %>% filter(grepl("W1 in-lab",survey_name))
+PSS_Wave1_Session2 <- rbind(PSS_Wave1_Session2, PSS_Wave1_Session2b)
+PSS_Wave2_Session2 <- PSS_Wave1 %>% filter(grepl("W2S2",survey_name))
+PSS_Wave2_Session2b <- PSS_Wave1 %>% filter(grepl("W2 in-lab",survey_name))
+PSS_Wave2_Session2 <- rbind(PSS_Wave2_Session2, PSS_Wave2_Session2b)
+PSS_Wave3_Session2 <- PSS_Wave1 %>% filter(grepl("W3S2",survey_name))
+#PSS_Wave3_Session2b <- PSS_Wave1 %>% filter(grepl("W3 in-lab",survey_name))
+#PSS_Wave3_Session2 <- rbind(PSS_Wave3_Session2, PSS_Wave3_Session2b)
+PSS_Wave4_Session2 <- PSS_Wave1 %>% filter(grepl("W4S2",survey_name))
+PSS_Wave4_Session2b <- PSS_Wave1 %>% filter(grepl("W4 in-lab",survey_name))
+PSS_Wave4_Session2 <- rbind(PSS_Wave4_Session2, PSS_Wave4_Session2b)
+PSS_Wave5_Session2 <- PSS_Wave1 %>% filter(grepl("W5S2",survey_name))
+PSS_Wave5_Session2b <- PSS_Wave1 %>% filter(grepl("W5 in-lab",survey_name))
+PSS_Wave5_Session2 <- rbind(PSS_Wave5_Session2, PSS_Wave5_Session2b)
+PSS_Wave6_Session2 <- PSS_Wave1 %>% filter(grepl("W6S2",survey_name))
+PSS_Wave6_Session2b <- PSS_Wave1 %>% filter(grepl("W6 in-lab",survey_name))
+PSS_Wave6_Session2 <- rbind(PSS_Wave6_Session2, PSS_Wave6_Session2b)
+
+PSS_Wave123456_FirstResponse <- PSS_Wave1 %>% filter(!grepl("W2S2",survey_name)) %>% 
+  filter(!grepl("W3S2",survey_name)) %>% filter(!grepl("W4S2",survey_name)) %>% 
+  filter(!grepl("W5S2",survey_name)) %>% filter(!grepl("W4 in-lab",survey_name)) %>% 
+  filter(!grepl("W5 in-lab",survey_name)) %>% filter(!grepl("W1 in-lab",survey_name)) %>% 
+  filter(!grepl("W1S2",survey_name)) %>% filter(!grepl("W6S2",survey_name)) %>% 
+  filter(!grepl("W6 in-lab",survey_name)) %>% filter(!grepl("W2 in-lab",survey_name))
+
+PSS_Wave123456_FirstResponse <- PSS_Wave123456_FirstResponse %>%
+#  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>% # add this line if you are not making RDoC db document
+  mutate(PSS_4=ifelse(PSS_4==0,4,
+                      ifelse(PSS_4==1,3,
+                             ifelse(PSS_4==2,2,
+                                    ifelse(PSS_4==3,1,
+                                           ifelse(PSS_4==4,0,
+                                                  NA))))),
+         PSS_5=ifelse(PSS_5==0,4,
+                      ifelse(PSS_5==1,3,
+                             ifelse(PSS_5==2,2,
+                                    ifelse(PSS_5==3,1,
+                                           ifelse(PSS_5==4,0,
+                                                  NA))))),
+         PSS_7=ifelse(PSS_7==0,4,
+                      ifelse(PSS_7==1,3,
+                             ifelse(PSS_7==2,2,
+                                    ifelse(PSS_7==3,1,
+                                           ifelse(PSS_7==4,0,
+                                                  NA))))),
+         PSS_8=ifelse(PSS_8==0,4,
+                      ifelse(PSS_8==1,3,
+                             ifelse(PSS_8==2,2,
+                                    ifelse(PSS_8==3,1,
+                                           ifelse(PSS_8==4,0,
+                                                  NA)))))) %>%
+  mutate(PSS_total=rowSums(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=F),
+         PSS_mean=rowMeans(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=T))
+
+PSS_Wave3_Session2 <- PSS_Wave3_Session2 %>%
+#  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>% # add this line if you are not making RDoC db document
+  mutate(PSS_1=ifelse(PSS_1==1,0,
+                      ifelse(PSS_1==2,1,
+                             ifelse(PSS_1==3,2,
+                                    ifelse(PSS_1==4,3,
+                                           ifelse(PSS_1==5,4,
+                                                  NA))))),
+         PSS_2=ifelse(PSS_2==1,0,
+                      ifelse(PSS_2==2,1,
+                             ifelse(PSS_2==3,2,
+                                    ifelse(PSS_2==4,3,
+                                           ifelse(PSS_2==5,4,
+                                                  NA))))),
+         PSS_3=ifelse(PSS_3==1,0,
+                      ifelse(PSS_3==2,1,
+                             ifelse(PSS_3==3,2,
+                                    ifelse(PSS_3==4,3,
+                                           ifelse(PSS_3==5,4,
+                                                  NA))))),
+         PSS_4=ifelse(PSS_4==1,4,
+                      ifelse(PSS_4==2,3,
+                             ifelse(PSS_4==3,2,
+                                    ifelse(PSS_4==4,1,
+                                           ifelse(PSS_4==5,0,
+                                                  NA))))),
+         PSS_5=ifelse(PSS_5==1,4,
+                      ifelse(PSS_5==2,3,
+                             ifelse(PSS_5==3,2,
+                                    ifelse(PSS_5==4,1,
+                                           ifelse(PSS_5==5,0,
+                                                  NA))))),
+         PSS_6=ifelse(PSS_6==1,0,
+                      ifelse(PSS_6==2,1,
+                             ifelse(PSS_6==3,2,
+                                    ifelse(PSS_6==4,3,
+                                           ifelse(PSS_6==5,4,
+                                                  NA))))),
+         PSS_7=ifelse(PSS_7==1,4,
+                      ifelse(PSS_7==2,3,
+                             ifelse(PSS_7==3,2,
+                                    ifelse(PSS_7==4,1,
+                                           ifelse(PSS_7==5,0,
+                                                  NA))))),
+         PSS_8=ifelse(PSS_8==1,4,
+                      ifelse(PSS_8==2,3,
+                             ifelse(PSS_8==3,2,
+                                    ifelse(PSS_8==4,1,
+                                           ifelse(PSS_8==5,0,
+                                                  NA))))),
+         PSS_9=ifelse(PSS_9==1,0,
+                      ifelse(PSS_9==2,1,
+                             ifelse(PSS_9==3,2,
+                                    ifelse(PSS_9==4,3,
+                                           ifelse(PSS_9==5,4,
+                                                  NA))))),
+         PSS_10=ifelse(PSS_10==1,0,
+                      ifelse(PSS_10==2,1,
+                             ifelse(PSS_10==3,2,
+                                    ifelse(PSS_10==4,3,
+                                           ifelse(PSS_10==5,4,
+                                                  NA)))))) %>%
+  mutate(PSS_total=rowSums(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=F),
+         PSS_mean=rowMeans(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=T))
+
+PSS_Wave4_Session2 <- PSS_Wave4_Session2 %>%
+#  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>% # add this line if you are not making RDoC db document
+  mutate(PSS_1=ifelse(PSS_1==1,0,
+                      ifelse(PSS_1==2,1,
+                             ifelse(PSS_1==3,2,
+                                    ifelse(PSS_1==4,3,
+                                           ifelse(PSS_1==5,4,
+                                                  NA))))),
+         PSS_2=ifelse(PSS_2==1,0,
+                      ifelse(PSS_2==2,1,
+                             ifelse(PSS_2==3,2,
+                                    ifelse(PSS_2==4,3,
+                                           ifelse(PSS_2==5,4,
+                                                  NA))))),
+         PSS_3=ifelse(PSS_3==1,0,
+                      ifelse(PSS_3==2,1,
+                             ifelse(PSS_3==3,2,
+                                    ifelse(PSS_3==4,3,
+                                           ifelse(PSS_3==5,4,
+                                                  NA))))),
+         PSS_4=ifelse(PSS_4==1,4,
+                      ifelse(PSS_4==2,3,
+                             ifelse(PSS_4==3,2,
+                                    ifelse(PSS_4==4,1,
+                                           ifelse(PSS_4==5,0,
+                                                  NA))))),
+         PSS_5=ifelse(PSS_5==1,4,
+                      ifelse(PSS_5==2,3,
+                             ifelse(PSS_5==3,2,
+                                    ifelse(PSS_5==4,1,
+                                           ifelse(PSS_5==5,0,
+                                                  NA))))),
+         PSS_6=ifelse(PSS_6==1,0,
+                      ifelse(PSS_6==2,1,
+                             ifelse(PSS_6==3,2,
+                                    ifelse(PSS_6==4,3,
+                                           ifelse(PSS_6==5,4,
+                                                  NA))))),
+         PSS_7=ifelse(PSS_7==1,4,
+                      ifelse(PSS_7==2,3,
+                             ifelse(PSS_7==3,2,
+                                    ifelse(PSS_7==4,1,
+                                           ifelse(PSS_7==5,0,
+                                                  NA))))),
+         PSS_8=ifelse(PSS_8==1,4,
+                      ifelse(PSS_8==2,3,
+                             ifelse(PSS_8==3,2,
+                                    ifelse(PSS_8==4,1,
+                                           ifelse(PSS_8==5,0,
+                                                  NA))))),
+         PSS_9=ifelse(PSS_9==1,0,
+                      ifelse(PSS_9==2,1,
+                             ifelse(PSS_9==3,2,
+                                    ifelse(PSS_9==4,3,
+                                           ifelse(PSS_9==5,4,
+                                                  NA))))),
+         PSS_10=ifelse(PSS_10==1,0,
+                      ifelse(PSS_10==2,1,
+                             ifelse(PSS_10==3,2,
+                                    ifelse(PSS_10==4,3,
+                                           ifelse(PSS_10==5,4,
+                                                  NA)))))) %>%
+  mutate(PSS_total=rowSums(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=F),
+         PSS_mean=rowMeans(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=T))
+
+PSS_Wave5_Session2 <- PSS_Wave5_Session2 %>%
+#  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>% # add this line if you are not making RDoC db document
+  mutate(PSS_1=ifelse(PSS_1==1,0,
+                      ifelse(PSS_1==2,1,
+                             ifelse(PSS_1==3,2,
+                                    ifelse(PSS_1==4,3,
+                                           ifelse(PSS_1==5,4,
+                                                  NA))))),
+         PSS_2=ifelse(PSS_2==1,0,
+                      ifelse(PSS_2==2,1,
+                             ifelse(PSS_2==3,2,
+                                    ifelse(PSS_2==4,3,
+                                           ifelse(PSS_2==5,4,
+                                                  NA))))),
+         PSS_3=ifelse(PSS_3==1,0,
+                      ifelse(PSS_3==2,1,
+                             ifelse(PSS_3==3,2,
+                                    ifelse(PSS_3==4,3,
+                                           ifelse(PSS_3==5,4,
+                                                  NA))))),
+         PSS_4=ifelse(PSS_4==1,4,
+                      ifelse(PSS_4==2,3,
+                             ifelse(PSS_4==3,2,
+                                    ifelse(PSS_4==4,1,
+                                           ifelse(PSS_4==5,0,
+                                                  NA))))),
+         PSS_5=ifelse(PSS_5==1,4,
+                      ifelse(PSS_5==2,3,
+                             ifelse(PSS_5==3,2,
+                                    ifelse(PSS_5==4,1,
+                                           ifelse(PSS_5==5,0,
+                                                  NA))))),
+         PSS_6=ifelse(PSS_6==1,0,
+                      ifelse(PSS_6==2,1,
+                             ifelse(PSS_6==3,2,
+                                    ifelse(PSS_6==4,3,
+                                           ifelse(PSS_6==5,4,
+                                                  NA))))),
+         PSS_7=ifelse(PSS_7==1,4,
+                      ifelse(PSS_7==2,3,
+                             ifelse(PSS_7==3,2,
+                                    ifelse(PSS_7==4,1,
+                                           ifelse(PSS_7==5,0,
+                                                  NA))))),
+         PSS_8=ifelse(PSS_8==1,4,
+                      ifelse(PSS_8==2,3,
+                             ifelse(PSS_8==3,2,
+                                    ifelse(PSS_8==4,1,
+                                           ifelse(PSS_8==5,0,
+                                                  NA))))),
+         PSS_9=ifelse(PSS_9==1,0,
+                      ifelse(PSS_9==2,1,
+                             ifelse(PSS_9==3,2,
+                                    ifelse(PSS_9==4,3,
+                                           ifelse(PSS_9==5,4,
+                                                  NA))))),
+         PSS_10=ifelse(PSS_10==1,0,
+                      ifelse(PSS_10==2,1,
+                             ifelse(PSS_10==3,2,
+                                    ifelse(PSS_10==4,3,
+                                           ifelse(PSS_10==5,4,
+                                                  NA)))))) %>%
+  mutate(PSS_total=rowSums(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=F),
+         PSS_mean=rowMeans(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=T))
+
+PSS_Wave6_Session2 <- PSS_Wave6_Session2 %>%
+#  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>% # add this line if you are not making RDoC db document
+  mutate(PSS_1=ifelse(PSS_1==1,0,
+                      ifelse(PSS_1==2,1,
+                             ifelse(PSS_1==3,2,
+                                    ifelse(PSS_1==4,3,
+                                           ifelse(PSS_1==5,4,
+                                                  NA))))),
+         PSS_2=ifelse(PSS_2==1,0,
+                      ifelse(PSS_2==2,1,
+                             ifelse(PSS_2==3,2,
+                                    ifelse(PSS_2==4,3,
+                                           ifelse(PSS_2==5,4,
+                                                  NA))))),
+         PSS_3=ifelse(PSS_3==1,0,
+                      ifelse(PSS_3==2,1,
+                             ifelse(PSS_3==3,2,
+                                    ifelse(PSS_3==4,3,
+                                           ifelse(PSS_3==5,4,
+                                                  NA))))),
+         PSS_4=ifelse(PSS_4==1,4,
+                      ifelse(PSS_4==2,3,
+                             ifelse(PSS_4==3,2,
+                                    ifelse(PSS_4==4,1,
+                                           ifelse(PSS_4==5,0,
+                                                  NA))))),
+         PSS_5=ifelse(PSS_5==1,4,
+                      ifelse(PSS_5==2,3,
+                             ifelse(PSS_5==3,2,
+                                    ifelse(PSS_5==4,1,
+                                           ifelse(PSS_5==5,0,
+                                                  NA))))),
+         PSS_6=ifelse(PSS_6==1,0,
+                      ifelse(PSS_6==2,1,
+                             ifelse(PSS_6==3,2,
+                                    ifelse(PSS_6==4,3,
+                                           ifelse(PSS_6==5,4,
+                                                  NA))))),
+         PSS_7=ifelse(PSS_7==1,4,
+                      ifelse(PSS_7==2,3,
+                             ifelse(PSS_7==3,2,
+                                    ifelse(PSS_7==4,1,
+                                           ifelse(PSS_7==5,0,
+                                                  NA))))),
+         PSS_8=ifelse(PSS_8==1,4,
+                      ifelse(PSS_8==2,3,
+                             ifelse(PSS_8==3,2,
+                                    ifelse(PSS_8==4,1,
+                                           ifelse(PSS_8==5,0,
+                                                  NA))))),
+         PSS_9=ifelse(PSS_9==1,0,
+                      ifelse(PSS_9==2,1,
+                             ifelse(PSS_9==3,2,
+                                    ifelse(PSS_9==4,3,
+                                           ifelse(PSS_9==5,4,
+                                                  NA))))),
+         PSS_10=ifelse(PSS_10==1,0,
+                      ifelse(PSS_10==2,1,
+                             ifelse(PSS_10==3,2,
+                                    ifelse(PSS_10==4,3,
+                                           ifelse(PSS_10==5,4,
+                                                  NA)))))) %>%
+  mutate(PSS_total=rowSums(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=F),
+         PSS_mean=rowMeans(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=T))
+
+PSS_Wave1_Session2 <- PSS_Wave1_Session2 %>%
+#  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>% # add this line if you are not making RDoC db document
+  mutate(PSS_1=ifelse(PSS_1==1,0,
+                      ifelse(PSS_1==2,1,
+                             ifelse(PSS_1==3,2,
+                                    ifelse(PSS_1==4,3,
+                                           ifelse(PSS_1==5,4,
+                                                  NA))))),
+         PSS_2=ifelse(PSS_2==1,0,
+                      ifelse(PSS_2==2,1,
+                             ifelse(PSS_2==3,2,
+                                    ifelse(PSS_2==4,3,
+                                           ifelse(PSS_2==5,4,
+                                                  NA))))),
+         PSS_3=ifelse(PSS_3==1,0,
+                      ifelse(PSS_3==2,1,
+                             ifelse(PSS_3==3,2,
+                                    ifelse(PSS_3==4,3,
+                                           ifelse(PSS_3==5,4,
+                                                  NA))))),
+         PSS_4=ifelse(PSS_4==1,4,
+                      ifelse(PSS_4==2,3,
+                             ifelse(PSS_4==3,2,
+                                    ifelse(PSS_4==4,1,
+                                           ifelse(PSS_4==5,0,
+                                                  NA))))),
+         PSS_5=ifelse(PSS_5==1,4,
+                      ifelse(PSS_5==2,3,
+                             ifelse(PSS_5==3,2,
+                                    ifelse(PSS_5==4,1,
+                                           ifelse(PSS_5==5,0,
+                                                  NA))))),
+         PSS_6=ifelse(PSS_6==1,0,
+                      ifelse(PSS_6==2,1,
+                             ifelse(PSS_6==3,2,
+                                    ifelse(PSS_6==4,3,
+                                           ifelse(PSS_6==5,4,
+                                                  NA))))),
+         PSS_7=ifelse(PSS_7==1,4,
+                      ifelse(PSS_7==2,3,
+                             ifelse(PSS_7==3,2,
+                                    ifelse(PSS_7==4,1,
+                                           ifelse(PSS_7==5,0,
+                                                  NA))))),
+         PSS_8=ifelse(PSS_8==1,4,
+                      ifelse(PSS_8==2,3,
+                             ifelse(PSS_8==3,2,
+                                    ifelse(PSS_8==4,1,
+                                           ifelse(PSS_8==5,0,
+                                                  NA))))),
+         PSS_9=ifelse(PSS_9==1,0,
+                      ifelse(PSS_9==2,1,
+                             ifelse(PSS_9==3,2,
+                                    ifelse(PSS_9==4,3,
+                                           ifelse(PSS_9==5,4,
+                                                  NA))))),
+         PSS_10=ifelse(PSS_10==1,0,
+                      ifelse(PSS_10==2,1,
+                             ifelse(PSS_10==3,2,
+                                    ifelse(PSS_10==4,3,
+                                           ifelse(PSS_10==5,4,
+                                                  NA)))))) %>%
+  mutate(PSS_total=rowSums(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=F),
+         PSS_mean=rowMeans(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=T))
+
+PSS_Wave2_Session2 <- PSS_Wave2_Session2 %>%
+#  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>% # add this line if you are not making RDoC db document
+  mutate(PSS_1=ifelse(PSS_1==1,0,
+                      ifelse(PSS_1==2,1,
+                             ifelse(PSS_1==3,2,
+                                    ifelse(PSS_1==4,3,
+                                           ifelse(PSS_1==5,4,
+                                                  NA))))),
+         PSS_2=ifelse(PSS_2==1,0,
+                      ifelse(PSS_2==2,1,
+                             ifelse(PSS_2==3,2,
+                                    ifelse(PSS_2==4,3,
+                                           ifelse(PSS_2==5,4,
+                                                  NA))))),
+         PSS_3=ifelse(PSS_3==1,0,
+                      ifelse(PSS_3==2,1,
+                             ifelse(PSS_3==3,2,
+                                    ifelse(PSS_3==4,3,
+                                           ifelse(PSS_3==5,4,
+                                                  NA))))),
+         PSS_4=ifelse(PSS_4==1,4,
+                      ifelse(PSS_4==2,3,
+                             ifelse(PSS_4==3,2,
+                                    ifelse(PSS_4==4,1,
+                                           ifelse(PSS_4==5,0,
+                                                  NA))))),
+         PSS_5=ifelse(PSS_5==1,4,
+                      ifelse(PSS_5==2,3,
+                             ifelse(PSS_5==3,2,
+                                    ifelse(PSS_5==4,1,
+                                           ifelse(PSS_5==5,0,
+                                                  NA))))),
+         PSS_6=ifelse(PSS_6==1,0,
+                      ifelse(PSS_6==2,1,
+                             ifelse(PSS_6==3,2,
+                                    ifelse(PSS_6==4,3,
+                                           ifelse(PSS_6==5,4,
+                                                  NA))))),
+         PSS_7=ifelse(PSS_7==1,4,
+                      ifelse(PSS_7==2,3,
+                             ifelse(PSS_7==3,2,
+                                    ifelse(PSS_7==4,1,
+                                           ifelse(PSS_7==5,0,
+                                                  NA))))),
+         PSS_8=ifelse(PSS_8==1,4,
+                      ifelse(PSS_8==2,3,
+                             ifelse(PSS_8==3,2,
+                                    ifelse(PSS_8==4,1,
+                                           ifelse(PSS_8==5,0,
+                                                  NA))))),
+         PSS_9=ifelse(PSS_9==1,0,
+                      ifelse(PSS_9==2,1,
+                             ifelse(PSS_9==3,2,
+                                    ifelse(PSS_9==4,3,
+                                           ifelse(PSS_9==5,4,
+                                                  NA))))),
+         PSS_10=ifelse(PSS_10==1,0,
+                      ifelse(PSS_10==2,1,
+                             ifelse(PSS_10==3,2,
+                                    ifelse(PSS_10==4,3,
+                                           ifelse(PSS_10==5,4,
+                                                  NA)))))) %>%
+  mutate(PSS_total=rowSums(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=F),
+         PSS_mean=rowMeans(cbind(PSS_1,PSS_2,PSS_3,PSS_4,PSS_5,PSS_6,PSS_7,PSS_8,PSS_9,PSS_10), na.rm=T))
+
+## Save it
+PSS_Wave1_outdf <- PSS_Wave123456_FirstResponse %>% 
+  filter(!grepl("W2|W3|W4|W5|W6|ACE|SOS",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PSS_Wave1.csv"))
+PSS_Wave1_Session2_outdf <- PSS_Wave1_Session2 %>% filter(!grepl("TAG3|TAG4",tagid)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave1_Session2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PSS_Wave1_Session2.csv"))
+PSS_Wave1_TAG2_outdf <- PSS_Wave123456_FirstResponse %>% 
+  filter(!grepl("W2|W3|W4|W5|W6|ACE|SOS",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PSS_Wave1_TAG2.csv"))
+PSS_Wave1_TAG2_Session2_outdf <- PSS_Wave1_Session2 %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave1_TAG2_Session2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PSS_Wave1_TAG2_Session2.csv"))
+
+PSS_Wave2_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PSS_Wave2.csv"))
+
+PSS_Wave2_TAG2_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PSS_Wave2_TAG2.csv"))
+
+PSS_Wave2_TAG2_Session2_outdf <- PSS_Wave2_Session2 %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave2_TAG2_Session2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PSS_Wave2_TAG2_Session2.csv"))
+
+#add  tag2w3 when available to code below
+PSS_Wave3_Session1_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("W3",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+PSS_Wave3_Session2_outdf <- PSS_Wave3_Session2 %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave3_Session1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PSS_Wave3_Session1.csv"))
+write.csv(PSS_Wave3_Session2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PSS_Wave3_Session2.csv"))
+
+PSS_Wave4_Session1_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("W4",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+PSS_Wave4_Session2_outdf <- PSS_Wave4_Session2 %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave4_Session1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/PSS_Wave4_Session1.csv"))
+write.csv(PSS_Wave4_Session2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/PSS_Wave4_Session2.csv"))
+
+PSS_Wave5_Session1_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("W5",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+PSS_Wave5_Session2_outdf <- PSS_Wave5_Session2 %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave5_Session1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/PSS_Wave5_Session1.csv"))
+write.csv(PSS_Wave5_Session2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/PSS_Wave5_Session2.csv"))
+
+PSS_Wave6_Session1_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("W6",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+PSS_Wave6_Session2_outdf <- PSS_Wave6_Session2 %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_Wave6_Session1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/PSS_Wave6_Session1.csv"))
+write.csv(PSS_Wave6_Session2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/PSS_Wave6_Session2.csv"))
+
+PSS_WaveSOS_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("SOS",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/PSS_WaveSOS.csv"))
+
+PSS_WaveACE1_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("Month 1",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/PSS_WaveACE1.csv"))
+
+PSS_WaveACE2_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("Month 2",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/PSS_WaveACE2.csv"))
+
+PSS_WaveACE3_outdf <- PSS_Wave123456_FirstResponse %>% filter(grepl("Month 3",survey_name)) %>% 
+  select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob)
+write.csv(PSS_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/PSS_WaveACE3.csv"))
+```
