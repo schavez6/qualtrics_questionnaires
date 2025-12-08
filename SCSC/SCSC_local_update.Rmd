@@ -1,0 +1,99 @@
+Prepare SCS-C # Do not submit to RDOC... file prep still in progress
+```{r}
+SCSC_Roles <- left_join(filter(cleaned_survey_data, grepl("^SCS-C_Roles",item)) %>%
+                 mutate(value=as.character(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+SCSC_Adj <- left_join(filter(cleaned_survey_data, grepl("^SCS-C",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+SCSC <- left_join(SCSC_Roles, SCSC_Adj)
+
+if (length(SCSC$tagid) == length(unique(SCSC$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+SCSC_Wave1<-left_join(SCSC,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                            ))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(SCS_C_Roles_1=ifelse(is.na(`SCS-C_Roles_1`),0,1),
+         SCS_C_Roles_2=ifelse(is.na(`SCS-C_Roles_2`),0,1),
+         SCS_C_Roles_3=ifelse(is.na(`SCS-C_Roles_3`),0,1),
+         SCS_C_Roles_4=ifelse(is.na(`SCS-C_Roles_4`),0,1),
+         SCS_C_Roles_5=ifelse(is.na(`SCS-C_Roles_5`),0,1),
+         SCS_C_Roles_6=ifelse(is.na(`SCS-C_Roles_6`),0,1),
+         SCS_C_Roles_7=ifelse(is.na(`SCS-C_Roles_7`),0,1),
+         SCS_C_Roles_8=ifelse(is.na(`SCS-C_Roles_8`),0,1),
+         SCS_C_Roles_9=ifelse(is.na(`SCS-C_Roles_9`),0,1),
+         SCS_C_Roles_10=ifelse(is.na(`SCS-C_Roles_10`),0,1),
+         SCS_C_NASPECTS=rowSums(cbind(SCS_C_Roles_1, SCS_C_Roles_2,
+                                      SCS_C_Roles_3, SCS_C_Roles_4,
+                                      SCS_C_Roles_5, SCS_C_Roles_6,
+                                      SCS_C_Roles_7, SCS_C_Roles_8,
+                                      SCS_C_Roles_9, SCS_C_Roles_10), na.rm = F)) %>% 
+  mutate(SCS_C_Group_Happy=as.character(paste0(`SCS-C_1_1`, `SCS-C_2_1`, `SCS-C_3_1`, `SCS-C_4_1`, `SCS-C_5_1`,
+                                  `SCS-C_6_1`, `SCS-C_7_1`, `SCS-C_8_1`, `SCS-C_9_1`, `SCS-C_10_1`)),
+         SCS_C_Group_Smart=as.character(paste0(`SCS-C_1_2`, `SCS-C_2_2`, `SCS-C_3_2`, `SCS-C_4_2`, `SCS-C_5_2`,
+                                  `SCS-C_6_2`, `SCS-C_7_2`, `SCS-C_8_2`, `SCS-C_9_2`, `SCS-C_10_2`)),
+         SCS_C_Group_Brave=as.character(paste0(`SCS-C_1_3`, `SCS-C_2_3`, `SCS-C_3_3`, `SCS-C_4_3`, `SCS-C_5_3`,
+                                  `SCS-C_6_3`, `SCS-C_7_3`, `SCS-C_8_3`, `SCS-C_9_3`, `SCS-C_10_3`)),
+         SCS_C_Group_Helpful=as.character(paste0(`SCS-C_1_4`, `SCS-C_2_4`, `SCS-C_3_4`, `SCS-C_4_4`, `SCS-C_5_4`,
+                                  `SCS-C_6_4`, `SCS-C_7_4`, `SCS-C_8_4`, `SCS-C_9_4`, `SCS-C_10_4`)),
+         SCS_C_Group_Nice=as.character(paste0(`SCS-C_1_5`, `SCS-C_2_5`, `SCS-C_3_5`, `SCS-C_4_5`, `SCS-C_5_5`,
+                                  `SCS-C_6_5`, `SCS-C_7_5`, `SCS-C_8_5`, `SCS-C_9_5`, `SCS-C_10_5`)),
+         SCS_C_Group_Angry=as.character(paste0(`SCS-C_1_6`, `SCS-C_2_6`, `SCS-C_3_6`, `SCS-C_4_6`, `SCS-C_5_6`,
+                                  `SCS-C_6_6`, `SCS-C_7_6`, `SCS-C_8_6`, `SCS-C_9_6`, `SCS-C_10_6`)),
+         SCS_C_Group_Lonely=as.character(paste0(`SCS-C_1_7`, `SCS-C_2_7`, `SCS-C_3_7`, `SCS-C_4_7`, `SCS-C_5_7`,
+                                  `SCS-C_6_7`, `SCS-C_7_7`, `SCS-C_8_7`, `SCS-C_9_7`, `SCS-C_10_7`)),
+         SCS_C_Group_Lazy=as.character(paste0(`SCS-C_1_8`, `SCS-C_2_8`, `SCS-C_3_8`, `SCS-C_4_8`, `SCS-C_5_8`,
+                                  `SCS-C_6_8`, `SCS-C_7_8`, `SCS-C_8_8`, `SCS-C_9_8`, `SCS-C_10_8`)),
+         SCS_C_Group_Bad=as.character(paste0(`SCS-C_1_9`, `SCS-C_2_9`, `SCS-C_3_9`, `SCS-C_4_9`, `SCS-C_5_9`,
+                                  `SCS-C_6_9`, `SCS-C_7_9`, `SCS-C_8_9`, `SCS-C_9_9`, `SCS-C_10_9`)),
+         SCS_C_Group_Scared=as.character(paste0(`SCS-C_1_10`, `SCS-C_2_10`, `SCS-C_3_10`, `SCS-C_4_10`, `SCS-C_5_10`,
+                                  `SCS-C_6_10`, `SCS-C_7_10`, `SCS-C_8_10`, `SCS-C_9_10`, `SCS-C_10_10`)),
+         SCS_C_Group_Responsible=as.character(paste0(`SCS-C_1_11`, `SCS-C_2_11`, `SCS-C_3_11`, `SCS-C_4_11`, `SCS-C_5_11`,
+                                  `SCS-C_6_11`, `SCS-C_7_11`, `SCS-C_8_11`, `SCS-C_9_11`, `SCS-C_10_11`)),
+         SCS_C_Group_Confident=as.character(paste0(`SCS-C_1_12`, `SCS-C_2_12`, `SCS-C_3_12`, `SCS-C_4_12`, `SCS-C_5_12`,
+                                  `SCS-C_6_12`, `SCS-C_7_12`, `SCS-C_8_12`, `SCS-C_9_12`, `SCS-C_10_12`)),
+         SCS_C_Group_Kind=as.character(paste0(`SCS-C_1_13`, `SCS-C_2_13`, `SCS-C_3_13`, `SCS-C_4_13`, `SCS-C_5_13`,
+                                  `SCS-C_6_13`, `SCS-C_7_13`, `SCS-C_8_13`, `SCS-C_9_13`, `SCS-C_10_13`)),
+         SCS_C_Group_Calm=as.character(paste0(`SCS-C_1_14`, `SCS-C_2_14`, `SCS-C_3_14`, `SCS-C_4_14`, `SCS-C_5_14`,
+                                  `SCS-C_6_14`, `SCS-C_7_14`, `SCS-C_8_14`, `SCS-C_9_14`, `SCS-C_10_14`)),
+         SCS_C_Group_Funny=as.character(paste0(`SCS-C_1_15`, `SCS-C_2_15`, `SCS-C_3_15`, `SCS-C_4_15`, `SCS-C_5_15`,
+                                  `SCS-C_6_15`, `SCS-C_7_15`, `SCS-C_8_15`, `SCS-C_9_15`, `SCS-C_10_15`)),
+         SCS_C_Group_Ugly=as.character(paste0(`SCS-C_1_16`, `SCS-C_2_16`, `SCS-C_3_16`, `SCS-C_4_16`, `SCS-C_5_16`,
+                                  `SCS-C_6_16`, `SCS-C_7_16`, `SCS-C_8_16`, `SCS-C_9_16`, `SCS-C_10_16`)),
+         SCS_C_Group_Sad=as.character(paste0(`SCS-C_1_17`, `SCS-C_2_17`, `SCS-C_3_17`, `SCS-C_4_17`, `SCS-C_5_17`,
+                                  `SCS-C_6_17`, `SCS-C_7_17`, `SCS-C_8_17`, `SCS-C_9_17`, `SCS-C_10_17`)),
+         SCS_C_Group_Shy=as.character(paste0(`SCS-C_1_18`, `SCS-C_2_18`, `SCS-C_3_18`, `SCS-C_4_18`, `SCS-C_5_18`,
+                                  `SCS-C_6_18`, `SCS-C_7_18`, `SCS-C_8_18`, `SCS-C_9_18`, `SCS-C_10_18`)),
+         SCS_C_Group_Confused=as.character(paste0(`SCS-C_1_19`, `SCS-C_2_19`, `SCS-C_3_19`, `SCS-C_4_19`, `SCS-C_5_19`,
+                                  `SCS-C_6_19`, `SCS-C_7_19`, `SCS-C_8_19`, `SCS-C_9_19`, `SCS-C_10_19`)),
+         SCS_C_Group_Careless=as.character(paste0(`SCS-C_1_20`, `SCS-C_2_20`, `SCS-C_3_20`, `SCS-C_4_20`, `SCS-C_5_20`,
+                                  `SCS-C_6_20`, `SCS-C_7_20`, `SCS-C_8_20`, `SCS-C_9_20`, `SCS-C_10_20`)))
+
+SCSC_Groups <- SCSC_Wave1 %>% select(SCS_C_Group_Happy, SCS_C_Group_Smart, SCS_C_Group_Brave, SCS_C_Group_Helpful, 
+                                     SCS_C_Group_Nice, SCS_C_Group_Angry, SCS_C_Group_Lonely, SCS_C_Group_Lazy, 
+                                     SCS_C_Group_Bad, SCS_C_Group_Scared, SCS_C_Group_Responsible, SCS_C_Group_Confident, 
+                                     SCS_C_Group_Kind, SCS_C_Group_Calm, SCS_C_Group_Funny, SCS_C_Group_Ugly, 
+                                     SCS_C_Group_Sad, SCS_C_Group_Shy, SCS_C_Group_Confused, SCS_C_Group_Careless)
+SCSC_Groups$patterncount <- apply(SCSC_Groups, 1, function(x)length(unique(x)))
+#SJC - need to finish this  
+```
