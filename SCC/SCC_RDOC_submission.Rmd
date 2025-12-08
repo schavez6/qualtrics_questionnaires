@@ -1,0 +1,45 @@
+```{r}
+## Make RDOC ready file
+ndar_scc_data <- left_join(SCC_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         scc_1=SCC_1,
+         scc_2=SCC_2,
+         scc_3=SCC_3,
+         scc_4=SCC_4,
+         scc_5=SCC_5,
+         scc_6=SCC_6,
+         scc_7=SCC_7,
+         scc_8=SCC_8,
+         scc_9=SCC_9,
+         scc_10=SCC_10,
+         scc_11=SCC_11,
+         scc_12=SCC_12,
+         scc_tot=ifelse(!is.na(SCC_total),SCC_total,"999"))
+         
+
+ndar_scc_data <- left_join(ndar_key,ndar_scc_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("SCC",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+
+scc_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/scc01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+scc_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/scc01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+scc_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/scc01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+scc_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/scc01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+scc_temp_df<-data.frame(scc_temp)
+ndar_scc_data<-rbind(scc_temp_df,ndar_scc_data)
+
+part2<-colnames(ndar_scc_data)
+part3<-as.matrix(ndar_scc_data)
+colnames(part3)<-NULL
+together<-rbind(scc_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/scc01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,scc_df_header,scc_temp,scc_temp_df,SCC,SCC_Wave1,SCC_Wave1_mean,SCC_Wave1_mean_graph,
+   SCC_Wave1_total,SCC_Wave1_total_graph)
+```
