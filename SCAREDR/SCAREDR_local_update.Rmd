@@ -1,0 +1,74 @@
+Prepare SCARED-R 
+```{r}
+SCARED<-left_join(filter(cleaned_survey_data, grepl("SCARED",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+if (length(SCARED$tagid) == length(unique(SCARED$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+SCARED_Wave1<-left_join(SCARED,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(SCARED_total=rowSums(cbind(SCARED_R_1,SCARED_R_2,SCARED_R_3,SCARED_R_4,SCARED_R_5,
+                                    SCARED_R_6,SCARED_R_7,SCARED_R_8,SCARED_R_9),na.rm=F),
+         SCARED_ptsd_total=rowSums(cbind(SCARED_R_6,SCARED_R_7,SCARED_R_8,SCARED_R_9),na.rm=F),
+         SCARED_anxiety_total=rowSums(cbind(SCARED_R_1,SCARED_R_2,SCARED_R_3,SCARED_R_4,SCARED_R_5),na.rm=F),
+         SCARED_mean=round(rowMeans(cbind(SCARED_R_1,SCARED_R_2,SCARED_R_3,SCARED_R_4,SCARED_R_5,
+                                    SCARED_R_6,SCARED_R_7,SCARED_R_8,SCARED_R_9),na.rm=T),3),
+         SCARED_ptsd_mean=round(rowMeans(cbind(SCARED_R_6,SCARED_R_7,SCARED_R_8,SCARED_R_9),na.rm=T),3),
+         SCARED_anxiety_mean=round(rowMeans(cbind(SCARED_R_1,SCARED_R_2,SCARED_R_3,SCARED_R_4,SCARED_R_5),na.rm=T),3))
+  
+
+## Save it
+SCARED_Wave1_outdf <- SCARED_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+SCARED_Wave1_TAG2_outdf <- SCARED_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SCARED_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SCARED_Wave1.csv"))
+write.csv(SCARED_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SCARED_Wave1_TAG2.csv"))
+
+SCARED_Wave2_outdf <- SCARED_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(SCARED_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SCARED_Wave2.csv"))
+
+SCARED_Wave2_TAG2_outdf <- SCARED_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SCARED_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SCARED_Wave2_TAG2.csv"))
+
+SCARED_Wave3_outdf <- SCARED_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(SCARED_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SCARED_Wave3.csv"))
+
+#not yet...
+SCARED_Wave3_TAG2_outdf <- SCARED_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(SCARED_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SCARED_Wave3_TAG2.csv"))
+
+SCARED_Wave4_outdf <- SCARED_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(SCARED_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/SCARED_Wave4.csv"))
+
+SCARED_Wave5_outdf <- SCARED_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(SCARED_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/SCARED_Wave5.csv"))
+
+SCARED_Wave6_outdf <- SCARED_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(SCARED_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/SCARED_Wave6.csv"))
+
+SCARED_WaveACE2_outdf <- SCARED_Wave1 %>% filter(grepl("Month 2",survey_name)) 
+write.csv(SCARED_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/SCARED_WaveACE2.csv"))
+
+SCARED_WaveACE3_outdf <- SCARED_Wave1 %>% filter(grepl("Month 3",survey_name)) 
+write.csv(SCARED_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/SCARED_WaveACE3.csv"))
+```
