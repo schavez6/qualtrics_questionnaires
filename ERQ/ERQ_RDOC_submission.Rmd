@@ -1,0 +1,46 @@
+```{r}
+## Make RDOC ready file
+ndar_erq_data <- left_join(ERQ_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+
+         version_form="ERQ; Gross & John, 9/03",
+         erq_1=ERQ_1,
+         erq_2=ERQ_2,
+         erq_3=ERQ_3,
+         erq_4=ERQ_4,
+         erq_5=ERQ_5,
+         erq_6=ERQ_6,
+         erq_7=ERQ_7,
+         erq_8=ERQ_8,
+         erq_9=ERQ_9,
+         erq_10=ERQ_10,
+         erq_reappraisal=ifelse(!is.na(ERQ_reappraisal_total),ERQ_reappraisal_total,999),
+         erq_suppression=ifelse(!is.na(ERQ_suppression_total),ERQ_suppression_total,999))
+
+ndar_erq_data <- left_join(ndar_key,ndar_erq_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("ERQ",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+
+erq_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/emrq01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+erq_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/emrq01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+erq_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/emrq01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+erq_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/emrq01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+erq_temp_df<-data.frame(erq_temp)
+ndar_erq_data<-rbind(erq_temp_df,ndar_erq_data)
+
+part2<-colnames(ndar_erq_data)
+part3<-as.matrix(ndar_erq_data)
+colnames(part3)<-NULL
+together<-rbind(erq_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/emrq01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,erq_df_header,erq_temp,erq_temp_df,ERQ,ERQ_Wave1,ERQ_Wave1_means,ERQ_Wave1_means_graph,
+   ERQ_Wave1_totals,ERQ_Wave1_totals_graph)
+
+```
