@@ -1,0 +1,88 @@
+Prepare IFS
+```{r}
+IFS<-left_join(filter(cleaned_survey_data, grepl("IFS",item)) %>% 
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+if (length(IFS$tagid) == length(unique(IFS$tagid))){
+  print("No duplicate TAGIDs in data")
+} else {
+  print("DUPLICATE TAGIDs in data")
+}
+IFS_cleaned<-left_join(IFS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="TAG - W1S2 - Current V3",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          )))))) %>% 
+  dplyr::select(-sb_date,-sa_date,-dob, -qualtrics_date) %>%
+  mutate(IFS_frankness_total=rowSums(cbind(IFS_1,IFS_2,IFS_3,IFS_4),na.rm=FALSE),
+         IFS_frankness_mean=round(rowMeans(cbind(IFS_1,IFS_2,IFS_3,IFS_4),na.rm=TRUE),3),
+         IFS_sensitivity_total=rowSums(cbind(IFS_5,IFS_6,IFS_7,IFS_8),na.rm=FALSE),
+         IFS_sensitivity_mean=round(rowMeans(cbind(IFS_5,IFS_6,IFS_7,IFS_8),na.rm=TRUE),3),
+         IFS_attachment_total=rowSums(cbind(IFS_9,IFS_10,IFS_11,IFS_12),na.rm=FALSE),
+         IFS_attachment_mean=round(rowMeans(cbind(IFS_9,IFS_10,IFS_11,IFS_12),na.rm=TRUE),3),
+         IFS_exclusiveness_total=rowSums(cbind(IFS_13,IFS_14,IFS_15,IFS_16),na.rm=FALSE),
+         IFS_exclusiveness_mean=round(rowMeans(cbind(IFS_13,IFS_14,IFS_15,IFS_16),na.rm=TRUE),3),
+         IFS_sharing_total=rowSums(cbind(IFS_17,IFS_18,IFS_19,IFS_20),na.rm=FALSE),
+         IFS_sharing_mean=round(rowMeans(cbind(IFS_17,IFS_18,IFS_19,IFS_20),na.rm=TRUE),3),
+         IFS_impose_total=rowSums(cbind(IFS_21,IFS_22,IFS_23,IFS_24),na.rm=FALSE),
+         IFS_impose_mean=round(rowMeans(cbind(IFS_21,IFS_22,IFS_23,IFS_24),na.rm=TRUE),3),
+         IFS_common_total=rowSums(cbind(IFS_25,IFS_26,IFS_27,IFS_28),na.rm=FALSE),
+         IFS_common_mean=round(rowMeans(cbind(IFS_25,IFS_26,IFS_27,IFS_28),na.rm=TRUE),3),
+         IFS_trust_total=rowSums(cbind(IFS_29,IFS_30,IFS_31,IFS_32),na.rm=FALSE),
+         IFS_trust_mean=round(rowMeans(cbind(IFS_29,IFS_30,IFS_31,IFS_32),na.rm=TRUE),3),
+         IFS_total_mean=round(rowMeans(cbind(IFS_frankness_mean, IFS_sensitivity_mean, IFS_attachment_mean, IFS_exclusiveness_mean, IFS_sharing_mean, IFS_impose_mean, IFS_common_mean, IFS_trust_mean),na.rm=TRUE),3),
+         IFS_N=32,
+         IFS_missing=rowSums(is.na(cbind(IFS_1,IFS_2,IFS_3,IFS_4,
+                                         IFS_9,IFS_10,IFS_11,IFS_12,
+                                         IFS_13,IFS_14,IFS_15,IFS_16,
+                                         IFS_17,IFS_18,IFS_19,IFS_20,
+                                         IFS_21,IFS_22,IFS_23,IFS_24,
+                                         IFS_25,IFS_26,IFS_27,IFS_28,
+                                         IFS_29,IFS_30,IFS_31,IFS_32))),
+         IFS_missing_perc=100*(rowSums(is.na(cbind(IFS_1,IFS_2,IFS_3,IFS_4,
+                                                   IFS_9,IFS_10,IFS_11,IFS_12,
+                                                   IFS_13,IFS_14,IFS_15,IFS_16,
+                                                   IFS_17,IFS_18,IFS_19,IFS_20,
+                                                   IFS_21,IFS_22,IFS_23,IFS_24,
+                                                   IFS_25,IFS_26,IFS_27,IFS_28,
+                                                   IFS_29,IFS_30,IFS_31,IFS_32))))/32) #NV added info on % missing items
+## Save it
+IFS_Wave1_outdf <- IFS_cleaned %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+IFS_Wave1_TAG2_outdf <- IFS_cleaned %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(IFS_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/IFS_Wave1.csv"))
+write.csv(IFS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/IFS_Wave1_TAG2.csv"))
+
+IFS_Wave2_outdf <- IFS_cleaned %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(IFS_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/IFS_Wave2.csv"))
+
+IFS_Wave2_TAG2_outdf <- IFS_cleaned %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(IFS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/IFS_Wave2_TAG2.csv"))
+
+IFS_Wave3_outdf <- IFS_cleaned %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(IFS_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/IFS_Wave3.csv"))
+
+#not yet...
+IFS_Wave3_TAG2_outdf <- IFS_cleaned %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(IFS_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/IFS_Wave3_TAG2.csv"))
+
+IFS_Wave4_outdf <- IFS_cleaned %>% filter(grepl("W4",survey_name)) 
+write.csv(IFS_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/IFS_Wave4.csv"))
+IFS_Wave5_outdf <- IFS_cleaned %>% filter(grepl("W5",survey_name)) 
+write.csv(IFS_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/IFS_Wave5.csv"))
+IFS_Wave6_outdf <- IFS_cleaned %>% filter(grepl("W6",survey_name)) 
+write.csv(IFS_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/IFS_Wave6.csv"))
+```
