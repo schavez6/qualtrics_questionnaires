@@ -1,0 +1,64 @@
+Prepare K-SRQ 
+```{r}
+KSRQ<-left_join(filter(cleaned_survey_data, grepl("K_SRQ",item)) %>%
+                  mutate(value=as.numeric(value)) %>% 
+                  filter(!is.na(value)) %>%
+                  filter(!value=="") %>%
+                  distinct(tagid,item,survey_name,value,.keep_all = FALSE) %>% 
+                  group_by(tagid,item,survey_name) %>%
+                  mutate(nrow = n(),
+                         value = ifelse(nrow > 1, NA, value)) %>%
+                  distinct(tagid,item,survey_name,value,.keep_all = FALSE) %>% 
+                  spread(item,value),
+                redcap_cleaned %>%
+                  filter(!is.na(dob),!is.na(sa_date)) %>%
+                  dplyr::select(tagid, sa_date, sb_date, sos_session_date, dob),by="tagid")
+KSRQ_Wave1<-left_join(KSRQ,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=qualtrics_date) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date, -dob) %>% 
+  mutate(K_SRQ_1=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 7, K_SRQ_1), K_SRQ_2=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 5, K_SRQ_2), K_SRQ_3=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 5, K_SRQ_3), K_SRQ_4=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 5, K_SRQ_4), K_SRQ_5=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 4, K_SRQ_5), K_SRQ_6=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 4, K_SRQ_6), K_SRQ_7=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 6, K_SRQ_7), K_SRQ_8=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 3, K_SRQ_8), K_SRQ_9=ifelse(tagid=="TAG003" & survey_name=="TAG - Sess 1 - V3", 4, K_SRQ_9)) %>% 
+  subset(survey_name!="TAG - Sess 1 - V3 - for 003 (KSRQ_1 and Sleep Q's)") %>% 
+  mutate(KSRQ_adm_mean=round(rowMeans(cbind(K_SRQ_1,K_SRQ_7,K_SRQ_11,K_SRQ_17), na.rm=T),3),
+         KSRQ_negsoc_mean=round(rowMeans(cbind(K_SRQ_3,K_SRQ_5,K_SRQ_8,K_SRQ_13,K_SRQ_16), na.rm=T),3),
+         KSRQ_pass_mean=round(rowMeans(cbind(K_SRQ_12,K_SRQ_20,K_SRQ_22), na.rm=T),3),
+         KSRQ_prosoc_mean=round(rowMeans(cbind(K_SRQ_2,K_SRQ_6,K_SRQ_15,K_SRQ_18,K_SRQ_21), na.rm=T),3),
+         KSRQ_sex_mean=round(rowMeans(cbind(K_SRQ_9,K_SRQ_23,K_SRQ_19), na.rm=T),3), # item 13 up to 5/9/19 was missing, will add new item #23 here (after 5/9/19) to replace item 13 - MLB
+         #item 23 added - SJC
+         KSRQ_social_mean=round(rowMeans(cbind(K_SRQ_4,K_SRQ_10,K_SRQ_14), na.rm=T),3))
+# Note above: Up to 5/09/2019, item 13 was missing completely from qualtrics, so subscales above reflect actual qualtrics item numbers - MLB
+
+## Save it
+KSRQ_Wave1_outdf <- KSRQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+KSRQ_Wave1_TAG2_outdf <- KSRQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(KSRQ_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/KSRQ_Wave1.csv"))
+write.csv(KSRQ_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/KSRQ_Wave1_TAG2.csv"))
+
+KSRQ_Wave2_outdf <- KSRQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(KSRQ_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/KSRQ_Wave2.csv"))
+
+KSRQ_Wave2_TAG2_outdf <- KSRQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(KSRQ_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/KSRQ_Wave2_TAG2.csv"))
+
+KSRQ_Wave3_outdf <- KSRQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(KSRQ_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/KSRQ_Wave3.csv"))
+
+KSRQ_Wave3_TAG2_outdf <- KSRQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(KSRQ_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/KSRQ_Wave3_TAG2.csv"))
+
+KSRQ_Wave4_outdf <- KSRQ_Wave1 %>% filter(grepl("W4",survey_name))
+write.csv(KSRQ_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/KSRQ_Wave4.csv"))
+
+KSRQ_Wave5_outdf <- KSRQ_Wave1 %>% filter(grepl("W5",survey_name))
+write.csv(KSRQ_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/KSRQ_Wave5.csv"))
+
+KSRQ_Wave6_outdf <- KSRQ_Wave1 %>% filter(grepl("W6",survey_name))
+write.csv(KSRQ_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/KSRQ_Wave6.csv"))
+
+KSRQ_WaveSOS_outdf <- KSRQ_Wave1 %>% filter(grepl("SOS",survey_name))
+write.csv(KSRQ_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/KSRQ_WaveSOS.csv"))
+```
