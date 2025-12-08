@@ -1,0 +1,155 @@
+Prepare SCC
+```{r}
+SCC<-left_join(filter(cleaned_survey_data, grepl("^SCC",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, sos_session_date, dob),by="tagid")
+
+if (length(SCC$tagid) == length(unique(SCC$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+SCC <- SCC %>% filter(!(tagid=="TAG145" & survey_name=="TAG - Home Qs - V3 - with SID embedded"))
+
+if (length(SCC$tagid) == length(unique(SCC$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+SCC <- SCC %>% dplyr::mutate(
+  SCC_1 = ifelse((is.na(SCC_1)), SCC_1...89, SCC_1),
+  SCC_2 = ifelse((is.na(SCC_2)), SCC_2...90, SCC_2),
+  SCC_3 = ifelse((is.na(SCC_3)), SCC_3...91, SCC_3),
+  SCC_4 = ifelse((is.na(SCC_4)), SCC_4...92, SCC_4),
+  SCC_5 = ifelse((is.na(SCC_5)), SCC_5...93, SCC_5),
+  SCC_6 = ifelse((is.na(SCC_6)), SCC_6...94, SCC_6),
+  SCC_7 = ifelse((is.na(SCC_7)), SCC_7...95, SCC_7),
+  SCC_8 = ifelse((is.na(SCC_8)), SCC_8...96, SCC_8),
+  SCC_9 = ifelse((is.na(SCC_9)), SCC_9...97, SCC_9),
+  SCC_10 = ifelse((is.na(SCC_10)), SCC_10...98, SCC_10),
+  SCC_11 = ifelse((is.na(SCC_11)), SCC_11...99, SCC_11),
+  SCC_12 = ifelse((is.na(SCC_12)), SCC_12...100, SCC_12)
+) %>% dplyr::select(-c('SCC_1...89','SCC_2...90','SCC_3...91','SCC_4...92','SCC_5...93',
+                       'SCC_6...94','SCC_7...95','SCC_8...96','SCC_9...97','SCC_10...98',
+                       'SCC_11...99','SCC_12...100','SCC_1...101','SCC_2...102','SCC_3...103',
+                       'SCC_4...104','SCC_5...105','SCC_6...106','SCC_7...107','SCC_8...108',
+                       'SCC_9...109','SCC_10...110','SCC_11...111','SCC_12...112'))
+
+SCC_Wave1<-left_join(SCC,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                            ))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-sos_session_date,-dob) %>%
+  mutate(SCC_1=ifelse(SCC_1==1,5,
+                      ifelse(SCC_1==2,4,
+                             ifelse(SCC_1==3,3,
+                                    ifelse(SCC_1==4,2,
+                                           ifelse(SCC_1==5,1,
+                                                  NA))))),
+         SCC_2=ifelse(SCC_2==1,5,
+                      ifelse(SCC_2==2,4,
+                             ifelse(SCC_2==3,3,
+                                    ifelse(SCC_2==4,2,
+                                           ifelse(SCC_2==5,1,
+                                                  NA))))),
+         SCC_3=ifelse(SCC_3==1,5,
+                      ifelse(SCC_3==2,4,
+                             ifelse(SCC_3==3,3,
+                                    ifelse(SCC_3==4,2,
+                                           ifelse(SCC_3==5,1,
+                                                  NA))))),
+         SCC_4=ifelse(SCC_4==1,5,
+                      ifelse(SCC_4==2,4,
+                             ifelse(SCC_4==3,3,
+                                    ifelse(SCC_4==4,2,
+                                           ifelse(SCC_4==5,1,
+                                                  NA))))),
+         SCC_5=ifelse(SCC_5==1,5,
+                      ifelse(SCC_5==2,4,
+                             ifelse(SCC_5==3,3,
+                                    ifelse(SCC_5==4,2,
+                                           ifelse(SCC_5==5,1,
+                                                  NA))))),
+         SCC_6=SCC_6,
+         SCC_7=ifelse(SCC_7==1,5,
+                      ifelse(SCC_7==2,4,
+                             ifelse(SCC_7==3,3,
+                                    ifelse(SCC_7==4,2,
+                                           ifelse(SCC_7==5,1,
+                                                  NA))))),
+         SCC_8=ifelse(SCC_8==1,5,
+                      ifelse(SCC_8==2,4,
+                             ifelse(SCC_8==3,3,
+                                    ifelse(SCC_8==4,2,
+                                           ifelse(SCC_8==5,1,
+                                                  NA))))),
+         SCC_9=ifelse(SCC_9==1,5,
+                      ifelse(SCC_9==2,4,
+                             ifelse(SCC_9==3,3,
+                                    ifelse(SCC_9==4,2,
+                                           ifelse(SCC_9==5,1,
+                                                  NA))))),
+         SCC_10=ifelse(SCC_10==1,5,
+                       ifelse(SCC_10==2,4,
+                              ifelse(SCC_10==3,3,
+                                     ifelse(SCC_10==4,2,
+                                            ifelse(SCC_10==5,1,
+                                                   NA))))),
+         SCC_11=SCC_11,
+         SCC_12=ifelse(SCC_12==1,5,
+                       ifelse(SCC_12==2,4,
+                              ifelse(SCC_12==3,3,
+                                     ifelse(SCC_12==4,2,
+                                            ifelse(SCC_12==5,1,
+                                                   NA)))))) %>%
+  mutate(SCC_N=12,
+         SCC_missing=rowSums(is.na(cbind(SCC_1,SCC_2,SCC_3,SCC_4,SCC_5,SCC_6,SCC_7,SCC_8,SCC_9,SCC_10,SCC_11,SCC_12))),
+         SCC_total=rowSums(cbind(SCC_1,SCC_2,SCC_3,SCC_4,SCC_5,SCC_6,SCC_7,SCC_8,SCC_9,SCC_10,SCC_11,SCC_12), na.rm=F),
+         SCC_mean=rowMeans(cbind(SCC_1,SCC_2,SCC_3,SCC_4,SCC_5,SCC_6,SCC_7,SCC_8,SCC_9,SCC_10,SCC_11,SCC_12), na.rm=T))
+
+## Save it
+SCC_all <- SCC_Wave1 %>% mutate(wave=ifelse((!grepl("W2|W3|W4|W5|W6|SOS",survey_name)),1, ifelse(grepl("W2",survey_name),2,ifelse(grepl("W3",survey_name),3,ifelse(grepl("W4",survey_name),4,ifelse(grepl("W5",survey_name),5,ifelse(grepl("W6",survey_name),6,ifelse(grepl("SOS",survey_name),"sos",NA))))))))
+write.csv(SCC_all, file = paste0(workdir,"Qualtrics_Output/Long/scc_long.csv"))
+
+SCC_Wave1_outdf <- SCC_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+    filter(!grepl("TAG3|TAG4",tagid))
+SCC_Wave1_TAG2_outdf <- SCC_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+    filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SCC_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SCC_Wave1.csv"))
+write.csv(SCC_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SCC_Wave1_TAG2.csv"))
+
+SCC_Wave2_outdf <- SCC_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(SCC_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SCC_Wave2.csv"))
+
+SCC_Wave2_TAG2_outdf <- SCC_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SCC_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SCC_Wave2_TAG2.csv"))
+
+SCC_Wave3_outdf <- SCC_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(SCC_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SCC_Wave3.csv"))
+
+SCC_Wave3_TAG2_outdf <- SCC_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SCC_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SCC_Wave3_TAG2.csv"))
+
+SCC_Wave4_outdf <- SCC_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(SCC_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/SCC_Wave4.csv"))
+
+SCC_Wave5_outdf <- SCC_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(SCC_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/SCC_Wave5.csv"))
+
+SCC_Wave6_outdf <- SCC_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(SCC_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/SCC_Wave6.csv"))
+
+SCC_WaveSOS_outdf <- SCC_Wave1 %>% filter(grepl("SOS",survey_name)) 
+write.csv(SCC_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/SCC_WaveSOS.csv"))
+```
