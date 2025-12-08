@@ -1,0 +1,102 @@
+Prepare MSPSS
+```{r}
+MSPSS<-left_join(filter(cleaned_survey_data, grepl("MSPSS",item)) %>%
+                  mutate(value=as.numeric(value)) %>% 
+                  filter(!is.na(value)) %>%
+                  filter(!value=="") %>%
+                  distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                  spread(item,value),
+                redcap_cleaned %>%
+                  filter(!is.na(dob),!is.na(sa_date)) %>%
+                  dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+if (length(MSPSS$tagid) == length(unique(MSPSS$tagid))){
+  print("No duplicate tagids in data")
+}
+
+TAG023_special<-left_join(filter(cleaned_survey_data, grepl("MSPSS",item)) %>%
+                            mutate(value=as.numeric(value)) %>% 
+                            filter(!is.na(value)) %>%
+                            filter(!value=="") %>%
+                            filter(tagid=="TAG023") %>%
+                            filter(!grepl("W2", survey_name)) %>% 
+                            distinct(tagid,item,value,.keep_all = FALSE) %>%
+                            spread(item,value),
+                          redcap_cleaned %>%
+                            filter(wave==1,!is.na(dob),!is.na(sa_date),tagid=="TAG023") %>%
+                            dplyr::select(tagid, sa_date, sb_date, dob),by="tagid") %>%
+  mutate(survey_name="TAG - Sess 1 - V1")
+
+MSPSS <- bind_rows(MSPSS %>% filter(!tagid=="TAG023"),TAG023_special)
+
+MSPSS_Wave1<-left_join(MSPSS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V4 - Current",sa_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                                   ifelse(survey_name=="TAG - Sess 1 - V2",sa_date,
+                                          ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 )))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(MSPSS_fam_total=rowSums(cbind(MSPSS_3,MSPSS_4,MSPSS_8,MSPSS_11), na.rm=F),
+         MSPSS_fri_total=rowSums(cbind(MSPSS_6,MSPSS_7,MSPSS_9,MSPSS_12), na.rm=F),
+         MSPSS_so_total=rowSums(cbind(MSPSS_1,MSPSS_2,MSPSS_5,MSPSS_10), na.rm=F),
+         MSPSS_fam_mean=rowMeans(cbind(MSPSS_3,MSPSS_4,MSPSS_8,MSPSS_11), na.rm=T),
+         MSPSS_fri_mean=rowMeans(cbind(MSPSS_6,MSPSS_7,MSPSS_9,MSPSS_12), na.rm=T),
+         MSPSS_so_mean=rowMeans(cbind(MSPSS_1,MSPSS_2,MSPSS_5,MSPSS_10), na.rm=T),
+         MSPSS_mean=rowMeans(cbind(MSPSS_1,MSPSS_2,MSPSS_3,MSPSS_4,MSPSS_5,MSPSS_6,MSPSS_7,
+                                   MSPSS_8,MSPSS_9,MSPSS_10,MSPSS_11,MSPSS_12), na.rm=T)) %>%
+  mutate(MSPSS_total=rowSums(cbind(MSPSS_fam_total,MSPSS_fri_total,MSPSS_so_total), na.rm=F),
+         MSPSS_fam_N=4,
+         MSPSS_fam_missing=rowSums(is.na(cbind(MSPSS_3,MSPSS_4,MSPSS_8,MSPSS_11))),
+         MSPSS_fam_missing_perc=100*(rowSums(is.na(cbind(MSPSS_3,MSPSS_4,MSPSS_8,MSPSS_11))))/4,
+         MSPSS_fri_N=4,
+         MSPSS_fri_missing=rowSums(is.na(cbind(MSPSS_6,MSPSS_7,MSPSS_9,MSPSS_12))),
+         MSPSS_fri_missing_perc=100*(rowSums(is.na(cbind(MSPSS_6,MSPSS_7,MSPSS_9,MSPSS_12))))/4,
+         MSPSS_so_N=4,
+         MSPSS_so_missing=rowSums(is.na(cbind(MSPSS_1,MSPSS_2,MSPSS_5,MSPSS_10))),
+         MSPSS_so_missing_perc=100*(rowSums(is.na(cbind(MSPSS_1,MSPSS_2,MSPSS_5,MSPSS_10))))/4,
+         MSPSS_N=12,
+         MSPSS_missing=rowSums(is.na(cbind(MSPSS_1,MSPSS_2,MSPSS_3,MSPSS_4,MSPSS_5,MSPSS_6,MSPSS_7,MSPSS_8,MSPSS_9,MSPSS_10,MSPSS_11,MSPSS_12))),
+         MSPSS_missing_perc=100*(rowSums(is.na(cbind(MSPSS_1,MSPSS_2,MSPSS_3,MSPSS_4,MSPSS_5,MSPSS_6,MSPSS_7,MSPSS_8,MSPSS_9,MSPSS_10,MSPSS_11,MSPSS_12))))/12) #NV added info on % missing items
+
+## Save it
+MSPSS_Wave1_outdf <- MSPSS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+MSPSS_Wave1_TAG2_outdf <- MSPSS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(MSPSS_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/MSPSS_Wave1.csv"))
+write.csv(MSPSS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/MSPSS_Wave1_TAG2.csv"))
+
+MSPSS_Wave2_outdf <- MSPSS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(MSPSS_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/MSPSS_Wave2.csv"))
+
+MSPSS_Wave2_TAG2_outdf <- MSPSS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(MSPSS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/MSPSS_Wave2_TAG2.csv"))
+
+MSPSS_Wave3_outdf <- MSPSS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(MSPSS_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/MSPSS_Wave3.csv"))
+
+MSPSS_Wave3_TAG2_outdf <- MSPSS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(MSPSS_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/MSPSS_Wave3_TAG2.csv"))
+
+MSPSS_Wave4_outdf <- MSPSS_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(MSPSS_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/MSPSS_Wave4.csv"))
+
+MSPSS_Wave5_outdf <- MSPSS_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(MSPSS_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/MSPSS_Wave5.csv"))
+
+MSPSS_Wave6_outdf <- MSPSS_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(MSPSS_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/MSPSS_Wave6.csv"))
+
+MSPSS_WaveACE1_outdf <- MSPSS_Wave1 %>% filter(grepl("Month 1",survey_name)) 
+write.csv(MSPSS_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/MSPSS_WaveACE1.csv"))
+
+MSPSS_WaveACE2_outdf <- MSPSS_Wave1 %>% filter(grepl("Month 2",survey_name)) 
+write.csv(MSPSS_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/MSPSS_WaveACE2.csv"))
+
+MSPSS_WaveACE3_outdf <- MSPSS_Wave1 %>% filter(grepl("Month 3",survey_name)) 
+write.csv(MSPSS_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/MSPSS_WaveACE3.csv"))
+```
