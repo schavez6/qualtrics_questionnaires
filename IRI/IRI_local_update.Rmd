@@ -1,0 +1,129 @@
+Prepare IRI
+```{r}
+IRI<-left_join(filter(cleaned_survey_data, grepl("IRI",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+IRI_raw <- IRI %>% distinct(tagid,survey_name,.keep_all = TRUE)
+
+IRI_Wave1<-left_join(IRI,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V2",sa_date,
+                                   ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                   )))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  # select(-IRI_1,-IRI_5,-IRI_7,-IRI_12,-IRI_16,-IRI_23,-IRI_26) %>%
+  mutate(IRI_3=ifelse(IRI_3==0,4,
+                      ifelse(IRI_3==1,3,
+                             ifelse(IRI_3==2,2,
+                                    ifelse(IRI_3==3,1,
+                                           ifelse(IRI_3==4,0,
+                                                  NA))))),
+         IRI_4=ifelse(IRI_4==0,4,
+                      ifelse(IRI_4==1,3,
+                             ifelse(IRI_4==2,2,
+                                    ifelse(IRI_4==3,1,
+                                           ifelse(IRI_4==4,0,
+                                                  NA))))),
+         IRI_13=ifelse(IRI_13==0,4,
+                       ifelse(IRI_13==1,3,
+                              ifelse(IRI_13==2,2,
+                                     ifelse(IRI_13==3,1,
+                                            ifelse(IRI_13==4,0,
+                                                   NA))))),
+         IRI_14=ifelse(IRI_14==0,4,
+                       ifelse(IRI_14==1,3,
+                              ifelse(IRI_14==2,2,
+                                     ifelse(IRI_14==3,1,
+                                            ifelse(IRI_14==4,0,
+                                                   NA))))),
+         IRI_15=ifelse(IRI_15==0,4,
+                       ifelse(IRI_15==1,3,
+                              ifelse(IRI_15==2,2,
+                                     ifelse(IRI_15==3,1,
+                                            ifelse(IRI_15==4,0,
+                                                   NA))))),
+         IRI_18=ifelse(IRI_18==0,4,
+                       ifelse(IRI_18==1,3,
+                              ifelse(IRI_18==2,2,
+                                     ifelse(IRI_18==3,1,
+                                            ifelse(IRI_18==4,0,
+                                                   NA))))),
+         IRI_19=ifelse(IRI_19==0,4,
+                       ifelse(IRI_19==1,3,
+                              ifelse(IRI_19==2,2,
+                                     ifelse(IRI_19==3,1,
+                                            ifelse(IRI_19==4,0,
+                                                   NA)))))) %>%
+  mutate(IRI_PT=7,
+         IRI_PT_missing=rowSums(is.na(cbind(IRI_3,IRI_8,IRI_11,IRI_15,IRI_21,IRI_25,IRI_28))),
+         IRI_PT_missing_perc=100*(rowSums(is.na(cbind(IRI_3,IRI_8,IRI_11,IRI_15,IRI_21,IRI_25,IRI_28))))/7,
+         IRI_PT_total=rowSums(cbind(IRI_3,IRI_8,IRI_11,IRI_15,IRI_21,IRI_25,IRI_28), na.rm=F),
+         IRI_PT_mean=rowMeans(cbind(IRI_3,IRI_8,IRI_11,IRI_15,IRI_21,IRI_25,IRI_28), na.rm=T),
+         IRI_EC=7,
+         IRI_EC_missing=rowSums(is.na(cbind(IRI_2,IRI_4,IRI_9,IRI_14,IRI_18,IRI_20,IRI_22))),
+         IRI_EC_missing_perc=100*(rowSums(is.na(cbind(IRI_2,IRI_4,IRI_9,IRI_14,IRI_18,IRI_20,IRI_22))))/7,
+         IRI_EC_total=rowSums(cbind(IRI_2,IRI_4,IRI_9,IRI_14,IRI_18,IRI_20,IRI_22), na.rm=F),
+         IRI_EC_mean=rowMeans(cbind(IRI_2,IRI_4,IRI_9,IRI_14,IRI_18,IRI_20,IRI_22), na.rm=T),
+         IRI_PD=7,
+         IRI_PD_missing=rowSums(is.na(cbind(IRI_6,IRI_10,IRI_13,IRI_17,IRI_19,IRI_24,IRI_27))),
+         IRI_PD_missing_perc=100*(rowSums(is.na(cbind(IRI_6,IRI_10,IRI_13,IRI_17,IRI_19,IRI_24,IRI_27))))/7,
+         IRI_PD_total=rowSums(cbind(IRI_6,IRI_10,IRI_13,IRI_17,IRI_19,IRI_24,IRI_27), na.rm=F),
+         IRI_PD_mean=rowMeans(cbind(IRI_6,IRI_10,IRI_13,IRI_17,IRI_19,IRI_24,IRI_27), na.rm=T),
+         IRI_FS_total = NA)
+
+## Save it
+IRI_Wave1_outdf <- IRI_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) %>% filter(!grepl("TAG2", survey_name)) 
+IRI_Wave1_TAG2_outdf <- IRI_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(IRI_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/IRI_Wave1.csv"))
+write.csv(IRI_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/IRI_Wave1_TAG2.csv"))
+
+
+IRI_Wave2_outdf <- IRI_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(IRI_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/IRI_Wave2.csv"))
+
+IRI_Wave2_TAG2_outdf <- IRI_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(IRI_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/IRI_Wave2_TAG2.csv"))
+
+IRI_Wave3_outdf <- IRI_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(IRI_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/IRI_Wave3.csv"))
+
+IRI_Wave3_TAG2_outdf <- IRI_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(IRI_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/IRI_Wave3_TAG2.csv"))
+
+IRI_Wave4_outdf <- IRI_Wave1 %>% filter(grepl("W4",survey_name))
+write.csv(IRI_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/IRI_Wave4.csv"))
+
+IRI_Wave5_outdf <- IRI_Wave1 %>% filter(grepl("W5",survey_name))
+write.csv(IRI_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/IRI_Wave5.csv"))
+
+IRI_Wave6_outdf <- IRI_Wave1 %>% filter(grepl("W6",survey_name))
+write.csv(IRI_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/IRI_Wave6.csv"))
+
+################
+IRI_Wave1_outdf$wave <- 1
+IRI_Wave1_TAG2_outdf$wave <- 1
+IRI_Wave2_outdf$wave <- 2
+IRI_Wave2_TAG2_outdf$wave <- 2
+IRI_Wave3_outdf$wave <- 3
+IRI_Wave3_TAG2_outdf$wave <- 3
+IRI_Wave4_outdf$wave <- 4
+IRI_Wave5_outdf$wave <- 5
+IRI_Wave6_outdf$wave <- 6
+
+IRI_alldata <- rbind(IRI_Wave1_outdf,IRI_Wave2_outdf,IRI_Wave3_outdf,IRI_Wave4_outdf,
+                      IRI_Wave5_outdf,IRI_Wave6_outdf,IRI_Wave1_TAG2_outdf,
+                      IRI_Wave2_TAG2_outdf,IRI_Wave3_TAG2_outdf)
+
+IRI_alldata <- IRI_alldata[with(IRI_alldata, order(tagid, survey_date)),]
+IRI_alldata <- IRI_alldata %>% relocate(tagid, wave, survey_date)
+write.csv(IRI_alldata, file = paste0(workdir,"Qualtrics_Output/Long/IRI_AllObs_Chronological.csv"))
+```
