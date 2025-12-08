@@ -1,0 +1,80 @@
+```{r}
+## Make RDOC ready file
+ndar_ifs_data <- left_join(IFS_cleaned,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         comments_misc=ifelse(grepl("Sess 1",survey_name),"Session1",
+                      ifelse(grepl("Session 1",survey_name),"Session1",
+                             ifelse(grepl("Sess 2",survey_name),"Session2",
+                                    ifelse(grepl("Session 2",survey_name),"Session2",
+                                           ifelse(grepl("Home",survey_name),"Home Questionnaires",
+                                                  NA))))),
+         site="University of Oregon",
+         study="Transitions in Adolescent Girls (TAG) Study",
+         #gender="F",
+         ifs_1=IFS_1,
+         ifs_2=IFS_2,
+         ifs_3=IFS_3,
+         ifs_4=IFS_4,
+         ifs_5=IFS_5,
+         ifs_6=IFS_6,
+         ifs_7=IFS_7,
+         ifs_8=IFS_8,
+         ifs_9=IFS_9,
+         ifs_10=IFS_10,
+         ifs_11=IFS_11,
+         ifs_12=IFS_12,
+         ifs_13=IFS_13,
+         ifs_14=IFS_14,
+         ifs_15=IFS_15,
+         ifs_16=IFS_16,
+         ifs_17=IFS_17,
+         ifs_18=IFS_18,
+         ifs_19=IFS_19,
+         ifs_20=IFS_20,
+         ifs_21=IFS_21,
+         ifs_22=IFS_22,
+         ifs_23=IFS_23,
+         ifs_24=IFS_24,
+         ifs_25=IFS_25,
+         ifs_26=IFS_26,
+         ifs_27=IFS_27,
+         ifs_28=IFS_28,
+         ifs_29=IFS_29,
+         ifs_30=IFS_30,
+         ifs_31=IFS_31,
+         ifs_32=IFS_32,
+         ifs_fs=as.integer(IFS_frankness_mean),
+         ifs_sk=as.integer(IFS_sensitivity_mean),
+         ifs_aa=as.integer(IFS_attachment_mean),
+         ifs_e=as.integer(IFS_exclusiveness_mean),
+         ifs_gh=as.integer(IFS_sharing_mean),
+         ifs_it=as.integer(IFS_impose_mean),
+         ifs_ca=as.integer(IFS_common_mean),
+         ifs_tl=as.integer(IFS_trust_mean),
+         ifs_ts=as.integer(IFS_total_mean))
+
+ndar_ifs_data <- left_join(ndar_key,ndar_ifs_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("IFS",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+ifs_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/ifs01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+ifs_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/ifs01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+ifs_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/ifs01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+ifs_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/ifs01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+ifs_temp_df<-data.frame(ifs_temp)
+ndar_ifs_data<-rbind(ifs_temp_df,ndar_ifs_data)
+
+part2<-colnames(ndar_ifs_data)
+part3<-as.matrix(ndar_ifs_data)
+colnames(part3)<-NULL
+together<-rbind(ifs_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/ifs01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,ifs_df_header,ifs_temp,ifs_temp_df,IFS,IFS_Wave1_means,IFS_cleaned,IFS_Wave1_totals,IFS_Wave1_totals_graph)
+
+```
