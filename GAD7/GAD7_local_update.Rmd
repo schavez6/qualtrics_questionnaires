@@ -1,0 +1,62 @@
+GAD-7
+```{r}
+GAD7<-left_join(filter(cleaned_survey_data, grepl("GAD",item)) %>%
+                  filter(!grepl("KSADS",survey_name)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+GAD7_Wave4<-left_join(GAD7,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(GAD7_total=rowSums(cbind(GAD7_1,GAD7_2,GAD7_3,GAD7_4,GAD7_5,GAD7_6,GAD7_7),na.rm=F),
+         GAD7_cat=ifelse(GAD7_total>=15, "severe anxiety", 
+                         ifelse((GAD7_total>=10 & GAD7_total<=14), "moderate anxiety", 
+                                ifelse((GAD7_total>=5 & GAD7_total<=9), "mild anxiety", 
+                                       ifelse((GAD7_total>=0 & GAD7_total<=4), "minimal anxiety", NA)))))
+  
+
+## Save it
+GAD7_Wave1_TAG2_outdf <- GAD7_Wave4 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(GAD7_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/GAD7_Wave1_TAG2.csv"))
+
+GAD7_Wave2_TAG2_outdf <- GAD7_Wave4 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(GAD7_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/GAD7_Wave2_TAG2.csv"))
+
+#not yet...
+GAD7_Wave3_TAG2_outdf <- GAD7_Wave4 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(GAD7_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/GAD7_Wave3_TAG2.csv"))
+
+GAD7_Wave4_outdf <- GAD7_Wave4 %>% filter(grepl("W4",survey_name)) 
+write.csv(GAD7_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/GAD7_Wave4.csv"))
+
+GAD7_Wave5_outdf <- GAD7_Wave4 %>% filter(grepl("W5",survey_name)) 
+write.csv(GAD7_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/GAD7_Wave5.csv"))
+
+GAD7_Wave6_outdf <- GAD7_Wave4 %>% filter(grepl("W6",survey_name)) 
+write.csv(GAD7_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/GAD7_Wave6.csv"))
+
+GAD7_WaveACE1_outdf <- GAD7_Wave4 %>% filter(grepl("Month 1",survey_name)) 
+write.csv(GAD7_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/GAD7_WaveACE1.csv"))
+
+GAD7_WaveACE2_outdf <- GAD7_Wave4 %>% filter(grepl("Month 2",survey_name)) 
+write.csv(GAD7_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/GAD7_WaveACE2.csv"))
+
+GAD7_WaveACE3_outdf <- GAD7_Wave4 %>% filter(grepl("Month 3",survey_name)) 
+write.csv(GAD7_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/GAD7_WaveACE3.csv"))
+```
