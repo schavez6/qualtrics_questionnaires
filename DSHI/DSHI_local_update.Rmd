@@ -1,0 +1,54 @@
+Prepare DSHI
+```{r}
+#note: now collecting DSHI data independent of qualtrics... future updates need to incorporate clinical session data
+DSHI<-left_join(filter(cleaned_survey_data, grepl("DSHI",item)) %>%
+                 filter(!is.na(value)) %>%
+                 # filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                  group_by(item, survey_name, tagid) %>%
+                  do({
+                    thing <- .
+                    if(any(thing$value != '')){
+                      retthing <- filter(thing, value != '')
+                    } else {
+                      retthing <- distinct(thing)
+                    }
+                    retthing
+                  }) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 select(tagid, sa_date, sb_date, dob),by="tagid")
+
+if (length(DSHI$tagid) == length(unique(DSHI$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+DSHI<- DSHI %>%
+  filter(!(tagid=="TAG055" & grepl("Sess 2",survey_name)))  %>%
+  filter(!(tagid=="TAG042" & grepl("Sess 1",survey_name)))
+
+if (length(DSHI$tagid) == length(unique(DSHI$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+DSHI_Wave1<-left_join(DSHI,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+## Save it
+DSHI_Wave1_outdf <- DSHI_Wave1 %>% filter(!grepl("KSADS",survey_name)) # deal with this later... **crying**
+write.csv(DSHI_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/DSHI_Wave1.csv"))
+#write.csv(DSHI_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Waves_12_RDOC/DSHI_Wave12.csv"))
+```
