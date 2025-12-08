@@ -1,0 +1,102 @@
+```{r}
+## Make RDOC ready file
+ndar_ehi_data <- left_join(EHI_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         site="University of Oregon",
+         study="TAG study",
+         writing=ifelse(EHI_1==1,"spl",
+                        ifelse(EHI_1==2,"left",
+                               ifelse(EHI_1==3,"np",
+                                      ifelse(EHI_1==4,"right",
+                                             ifelse(EHI_1==5,"spr",
+                                                    NA))))),
+         drawing=ifelse(EHI_2==1,"spl",
+                        ifelse(EHI_2==2,"left",
+                               ifelse(EHI_2==3,"np",
+                                      ifelse(EHI_2==4,"right",
+                                             ifelse(EHI_2==5,"spr",
+                                                    NA))))),
+         throwing=ifelse(EHI_3==1,"spl",
+                         ifelse(EHI_3==2,"left",
+                                ifelse(EHI_3==3,"np",
+                                       ifelse(EHI_3==4,"right",
+                                              ifelse(EHI_3==5,"spr",
+                                                     NA))))),
+         scissors=ifelse(EHI_4==1,"spl",
+                         ifelse(EHI_4==2,"left",
+                                ifelse(EHI_4==3,"np",
+                                       ifelse(EHI_4==4,"right",
+                                              ifelse(EHI_4==5,"spr",
+                                                     NA))))),
+         toothbrush=ifelse(EHI_5==1,"spl",
+                           ifelse(EHI_5==2,"left",
+                                  ifelse(EHI_5==3,"np",
+                                         ifelse(EHI_5==4,"right",
+                                                ifelse(EHI_5==5,"spr",
+                                                       NA))))),
+         knife_no_fork=ifelse(EHI_6==1,"spl",
+                              ifelse(EHI_6==2,"left",
+                                     ifelse(EHI_6==3,"np",
+                                            ifelse(EHI_6==4,"right",
+                                                   ifelse(EHI_6==5,"spr",
+                                                          NA))))),
+         spoon=ifelse(EHI_7==1,"spl",
+                      ifelse(EHI_7==2,"left",
+                             ifelse(EHI_7==3,"np",
+                                    ifelse(EHI_7==4,"right",
+                                           ifelse(EHI_7==5,"spr",
+                                                  NA))))),
+         broom=ifelse(EHI_8==1,"spl",
+                      ifelse(EHI_8==2,"left",
+                             ifelse(EHI_8==3,"np",
+                                    ifelse(EHI_8==4,"right",
+                                           ifelse(EHI_8==5,"spr",
+                                                  NA))))),
+         match=ifelse(EHI_9==1,"spl",
+                      ifelse(EHI_9==2,"left",
+                             ifelse(EHI_9==3,"np",
+                                    ifelse(EHI_9==4,"right",
+                                           ifelse(EHI_9==5,"spr",
+                                                  NA))))),
+         box=ifelse(EHI_10==1,"spl",
+                    ifelse(EHI_10==2,"left",
+                           ifelse(EHI_10==3,"np",
+                                  ifelse(EHI_10==4,"right",
+                                         ifelse(EHI_10==5,"spr",
+                                                NA))))),
+         foot=ifelse(EHI_11==1,"spl",
+                     ifelse(EHI_11==2,"left",
+                            ifelse(EHI_11==3,"np",
+                                   ifelse(EHI_11==4,"right",
+                                          ifelse(EHI_11==5,"spr",
+                                                 NA))))),
+         eye=ifelse(EHI_12==1,"spl",
+                    ifelse(EHI_12==2,"left",
+                           ifelse(EHI_12==3,"np",
+                                  ifelse(EHI_12==4,"right",
+                                         ifelse(EHI_12==5,"spr",
+                                                NA))))))
+ndar_ehi_data <- left_join(ndar_key,ndar_ehi_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("EHI",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+ehi_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/edinburgh_hand01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+ehi_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/edinburgh_hand01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+ehi_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/edinburgh_hand01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+ehi_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/edinburgh_hand01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+ehi_temp_df<-data.frame(ehi_temp)
+ndar_ehi_data<-rbind(ehi_temp_df,ndar_ehi_data)
+
+part2<-colnames(ndar_ehi_data)
+part3<-as.matrix(ndar_ehi_data)
+colnames(part3)<-NULL
+together<-rbind(ehi_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/edinburgh_hand01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,ehi_df_header,ehi_temp,ehi_temp_df,EHI,EHI_Wave1)
+```
