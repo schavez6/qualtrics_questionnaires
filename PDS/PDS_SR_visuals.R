@@ -1,4 +1,4 @@
-## Graph it
+## Graph it #note - this is self-report data
 #graph prep
 dob <- redcap_cleaned %>% select(dob,tagid) %>% unique()
 pds_age <- left_join(PDS_alldata,dob, by="tagid")
