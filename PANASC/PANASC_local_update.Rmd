@@ -1,0 +1,63 @@
+Prepare PANAS-C
+```{r}
+PANAS<-left_join(filter(cleaned_survey_data, grepl("PANAS",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+if (length(PANAS$tagid) == length(unique(PANAS$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+PANAS_Wave1<-left_join(PANAS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(PANAS_pos_total=rowSums(cbind(PANAS_C_1,PANAS_C_3,PANAS_C_5,PANAS_C_7,PANAS_C_9),na.rm=FALSE),
+         PANAS_pos_mean=rowMeans(cbind(PANAS_C_1,PANAS_C_3,PANAS_C_5,PANAS_C_7,PANAS_C_9),na.rm=TRUE),
+         PANAS_neg_total=rowSums(cbind(PANAS_C_2,PANAS_C_4,PANAS_C_6,PANAS_C_8,PANAS_C_10),na.rm=FALSE),
+         PANAS_neg_mean=rowMeans(cbind(PANAS_C_2,PANAS_C_4,PANAS_C_6,PANAS_C_8,PANAS_C_10),na.rm=TRUE))
+
+## Save it
+PANAS_Wave1_outdf <- PANAS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+PANAS_Wave1_TAG2_outdf <- PANAS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PANAS_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PANAS_Wave1.csv"))
+write.csv(PANAS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PANAS_Wave1_TAG2.csv"))
+
+PANAS_Wave2_outdf <- PANAS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(PANAS_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PANAS_Wave2.csv"))
+
+PANAS_Wave2_TAG2_outdf <- PANAS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PANAS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PANAS_Wave2_TAG2.csv"))
+
+PANAS_Wave3_outdf <- PANAS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(PANAS_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PANAS_Wave3.csv"))
+
+#not yet...
+PANAS_Wave3_TAG2_outdf <- PANAS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(PANAS_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PANAS_Wave3_TAG2.csv"))
+
+PANAS_Wave4_outdf <- PANAS_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(PANAS_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/PANAS_Wave4.csv"))
+
+PANAS_Wave5_outdf <- PANAS_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(PANAS_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/PANAS_Wave5.csv"))
+
+PANAS_Wave6_outdf <- PANAS_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(PANAS_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/PANAS_Wave6.csv"))
+```
