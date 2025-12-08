@@ -1,0 +1,48 @@
+```{r}
+  ## Make RDOC ready file
+ndar_sppa_data <- left_join(SPPA_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         site="University of Oregon",
+         hascx=SPPA_scholasticcomp_mean,
+         hasct=ifelse(!is.na(SPPA_scholasticcomp_total),SPPA_scholasticcomp_total,NA),
+         hasax=SPPA_socialcomp_mean,
+         hasat=ifelse(!is.na(SPPA_socialcomp_total),SPPA_socialcomp_total,NA),
+         haacx=SPPA_athleticcomp_mean,
+         haact=ifelse(!is.na(SPPA_athleticcomp_total),SPPA_athleticcomp_total,NA),
+         hapax=SPPA_physicalappear_mean,
+         hapat=ifelse(!is.na(SPPA_physicalappear_total),SPPA_physicalappear_total,NA),
+         harax=SPPA_romanticappeal_mean,
+         harat=ifelse(!is.na(SPPA_romanticappeal_total),SPPA_romanticappeal_total,NA),
+         habcx=SPPA_behavconduct_mean,
+         habct=ifelse(!is.na(SPPA_behavconduct_total),SPPA_behavconduct_total,NA),
+         hacfx=SPPA_closefriend_mean,
+         hacft=ifelse(!is.na(SPPA_closefriend_total),SPPA_closefriend_total,NA),
+         hagswx=SPPA_globalselfworth_mean,
+         hagswt=ifelse(!is.na(SPPA_globalselfworth_total),SPPA_globalselfworth_total,NA))
+
+ndar_sppa_data <- left_join(ndar_key,ndar_sppa_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("SPPA",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+
+sppa_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/harterac01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+sppa_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/harterac01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+sppa_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/harterac01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+sppa_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/harterac01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+sppa_temp_df<-data.frame(sppa_temp)
+ndar_sppa_data<-rbind(sppa_temp_df,ndar_sppa_data)
+
+part2<-colnames(ndar_sppa_data)
+part3<-as.matrix(ndar_sppa_data)
+colnames(part3)<-NULL
+together<-rbind(sppa_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/harterac01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,sppa_df_header,sppa_temp,sppa_temp_df,SPPA,SPPA_Wave1,SPPA_Wave1_means,SPPA_Wave1_means_graph,
+   SPPA_Wave1_totals,SPPA_Wave1_totals_graph)
+```
