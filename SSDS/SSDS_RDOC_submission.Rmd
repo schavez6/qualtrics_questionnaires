@@ -1,0 +1,65 @@
+```{r}
+## Make RDOC ready file
+ndar_ssds_data <- left_join(SSDS_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         site="University of Oregon",
+         comments_misc=ifelse(grepl("Sess 1",survey_name),"Session1; ssds_1 not administered",
+                      ifelse(grepl("Session 1",survey_name),"Session1; ssds_1 not administered",
+                             ifelse(grepl("Sess 2",survey_name),"Session2; ssds_1 not administered",
+                                    ifelse(grepl("Session 2",survey_name),"Session2; ssds_1 not administered",
+                                           ifelse(grepl("Sensitive Qs",survey_name),"Session2; ssds_1 not administered",
+                                           ifelse(grepl("Home",survey_name),"Home Questionnaires; ssds_1 not administered",NA)))))),
+         #ssds_1=88, #NV: This needs to be updated based on rescoring above. The only thing that needs to be changed is this first item - ssds_1=SSDS_1
+         ssds_1=SSDS_1,
+         ssds_2=SSDS_2,
+         ssds_3=SSDS_3,
+         ssds_4=SSDS_4,
+         ssds_5=SSDS_5,
+         ssds_6=SSDS_6,
+         ssds_7=SSDS_7,
+         ssds_8=SSDS_8,
+         ssds_9=SSDS_9,
+         ssds_10=SSDS_10,
+         ssds_11=SSDS_11,
+         ssds_12=SSDS_12,
+         ssds_13=SSDS_13,
+         ssds_14=SSDS_14,
+         ssds_15=SSDS_15,
+         ssds_16=SSDS_16,
+         ssds_17=SSDS_17,
+         ssds_18=SSDS_18,
+         ssds_19=SSDS_19,
+         ssds_20=SSDS_20,
+         ssds_21=SSDS_21,
+         ssds_22=SSDS_22,
+         ssds_23=SSDS_23,
+         ssds_fam=ifelse(!is.na(SSDS_family_disclosure_total),SSDS_family_disclosure_total,999),
+         ssds_friend=ifelse(!is.na(SSDS_friend_disclosure_total),SSDS_friend_disclosure_total,999),
+         ssds_phys=ifelse(!is.na(SSDS_physdev_disclosure_total),SSDS_physdev_disclosure_total,999))
+
+ndar_ssds_data <- left_join(ndar_key,ndar_ssds_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("SSDS",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+
+ssds_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/ssds01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+ssds_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/ssds01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+ssds_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/ssds01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+ssds_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/ssds01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+ssds_temp_df<-data.frame(ssds_temp)
+ndar_ssds_data<-rbind(ssds_temp_df,ndar_ssds_data)
+
+part2<-colnames(ndar_ssds_data)
+part3<-as.matrix(ndar_ssds_data)
+colnames(part3)<-NULL
+together<-rbind(ssds_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/ssds01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,ssds_df_header,ssds_temp,ssds_temp_df,SSDS,SSDS_Wave1,SSDS_Wave1_means,SSDS_Wave1_means_graph,
+   SSDS_Wave1_totals,SSDS_Wave1_totals_graph)
+```
