@@ -1,0 +1,119 @@
+Prepare EHI
+```{r}
+EHI<-left_join(filter(cleaned_survey_data, grepl("EHI",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+EHI_Wave1<-left_join(EHI,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                            ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                            ))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(EHI_1r=ifelse(EHI_1==1,-2,
+                       ifelse(EHI_1==2,-1,
+                              ifelse(EHI_1==3,0,
+                                     ifelse(EHI_1==4,1,
+                                            ifelse(EHI_1==5,2,NA))))),
+         EHI_2r=ifelse(EHI_2==1,-2,
+                       ifelse(EHI_2==2,-1,
+                              ifelse(EHI_2==3,0,
+                                     ifelse(EHI_2==4,1,
+                                            ifelse(EHI_2==5,2,NA))))),
+         EHI_3r=ifelse(EHI_3==1,-2,
+                       ifelse(EHI_3==2,-1,
+                              ifelse(EHI_3==3,0,
+                                     ifelse(EHI_3==4,1,
+                                            ifelse(EHI_3==5,2,NA))))),
+         EHI_4r=ifelse(EHI_4==1,-2,
+                       ifelse(EHI_4==2,-1,
+                              ifelse(EHI_4==3,0,
+                                     ifelse(EHI_4==4,1,
+                                            ifelse(EHI_4==5,2,NA))))),
+         EHI_5r=ifelse(EHI_5==1,-2,
+                       ifelse(EHI_5==2,-1,
+                              ifelse(EHI_5==3,0,
+                                     ifelse(EHI_5==4,1,
+                                            ifelse(EHI_5==5,2,NA))))),
+         EHI_6r=ifelse(EHI_6==1,-2,
+                       ifelse(EHI_6==2,-1,
+                              ifelse(EHI_6==3,0,
+                                     ifelse(EHI_6==4,1,
+                                            ifelse(EHI_6==5,2,NA))))),
+         EHI_7r=ifelse(EHI_7==1,-2,
+                       ifelse(EHI_7==2,-1,
+                              ifelse(EHI_7==3,0,
+                                     ifelse(EHI_7==4,1,
+                                            ifelse(EHI_7==5,2,NA))))),
+         EHI_8r=ifelse(EHI_8==1,-2,
+                       ifelse(EHI_8==2,-1,
+                              ifelse(EHI_8==3,0,
+                                     ifelse(EHI_8==4,1,
+                                            ifelse(EHI_8==5,2,NA))))),
+         EHI_9r=ifelse(EHI_9==1,-2,
+                       ifelse(EHI_9==2,-1,
+                              ifelse(EHI_9==3,0,
+                                     ifelse(EHI_9==4,1,
+                                            ifelse(EHI_9==5,2,NA))))),
+         EHI_10r=ifelse(EHI_10==1,-2,
+                       ifelse(EHI_10==2,-1,
+                              ifelse(EHI_10==3,0,
+                                     ifelse(EHI_10==4,1,
+                                            ifelse(EHI_10==5,2,NA)))))) %>%
+  mutate(EHI_sum = rowSums(cbind(EHI_1r,EHI_2r,EHI_3r,EHI_4r,EHI_5r,
+                                   EHI_6r,EHI_7r,EHI_8r,EHI_9r,EHI_10r),na.rm=T),
+         EHI_compN = rowSums(!is.na(cbind(EHI_1r,EHI_2r,EHI_3r,EHI_4r,EHI_5r,
+                                   EHI_6r,EHI_7r,EHI_8r,EHI_9r,EHI_10r))),
+         EHI_missing_perc = 100*(rowSums(is.na(cbind(EHI_1r,EHI_2r,EHI_3r,EHI_4r,EHI_5r,
+                                   EHI_6r,EHI_7r,EHI_8r,EHI_9r,EHI_10r)))/10)) %>%
+  mutate(EHI_score = ifelse(EHI_missing_perc < 25, 100*(EHI_sum/(2*EHI_compN)),NA)) %>%
+  mutate(EHI_handedness = ifelse(EHI_score <= -20, "LH",
+                                 ifelse(EHI_score >= 20, "RH",
+                                        ifelse((EHI_score > -20 & EHI_score < 20), "ambi", NA)))) %>%
+  dplyr::select(-EHI_sum,-EHI_compN)
+                                        
+## Save it
+EHI_Wave1_outdf <- EHI_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  mutate(EHI_1=EHI_1r,EHI_2=EHI_2r,EHI_3=EHI_3r,EHI_4=EHI_4r,EHI_5=EHI_5r,
+         EHI_6=EHI_6r,EHI_7=EHI_7r,EHI_8=EHI_8r,EHI_9=EHI_9r,EHI_10=EHI_10r) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+EHI_Wave1_TAG2_outdf <- EHI_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  mutate(EHI_1=EHI_1r,EHI_2=EHI_2r,EHI_3=EHI_3r,EHI_4=EHI_4r,EHI_5=EHI_5r,
+         EHI_6=EHI_6r,EHI_7=EHI_7r,EHI_8=EHI_8r,EHI_9=EHI_9r,EHI_10=EHI_10r) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(EHI_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/EHI_Wave1.csv"))
+write.csv(EHI_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/EHI_Wave1_TAG2.csv"))
+
+EHI_Wave2_outdf <- EHI_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  mutate(EHI_1=EHI_1r,EHI_2=EHI_2r,EHI_3=EHI_3r,EHI_4=EHI_4r,EHI_5=EHI_5r,
+         EHI_6=EHI_6r,EHI_7=EHI_7r,EHI_8=EHI_8r,EHI_9=EHI_9r,EHI_10=EHI_10r) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+write.csv(EHI_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/EHI_Wave2.csv"))
+
+EHI_Wave2_TAG2_outdf <- EHI_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  mutate(EHI_1=EHI_1r,EHI_2=EHI_2r,EHI_3=EHI_3r,EHI_4=EHI_4r,EHI_5=EHI_5r,
+         EHI_6=EHI_6r,EHI_7=EHI_7r,EHI_8=EHI_8r,EHI_9=EHI_9r,EHI_10=EHI_10r) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(EHI_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/EHI_Wave2_TAG2.csv"))
+
+EHI_Wave3_outdf <- EHI_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  mutate(EHI_1=EHI_1r,EHI_2=EHI_2r,EHI_3=EHI_3r,EHI_4=EHI_4r,EHI_5=EHI_5r,
+         EHI_6=EHI_6r,EHI_7=EHI_7r,EHI_8=EHI_8r,EHI_9=EHI_9r,EHI_10=EHI_10r) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+write.csv(EHI_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/EHI_Wave3.csv"))
+
+EHI_Wave3_TAG2_outdf <- EHI_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  mutate(EHI_1=EHI_1r,EHI_2=EHI_2r,EHI_3=EHI_3r,EHI_4=EHI_4r,EHI_5=EHI_5r,
+         EHI_6=EHI_6r,EHI_7=EHI_7r,EHI_8=EHI_8r,EHI_9=EHI_9r,EHI_10=EHI_10r) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(EHI_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/EHI_Wave3_TAG2.csv"))
+
+#ehi removed after w3
+```
