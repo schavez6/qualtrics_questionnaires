@@ -1,0 +1,78 @@
+```{r}
+SES<-left_join(filter(cleaned_survey_data, grepl("P_|Spouse_|Income|Free_Lunch|Household|Ladder|zip|Q103|Q104|Q105|Q106|p_school|parent_move|Bedrooms|Ethnicity",item)) %>%
+                 mutate(value=as.numeric(value)) %>%
+                                    filter(grepl("Parent",survey_name)) %>%
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+SES_Wave1<-left_join(SES,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>% 
+  mutate(p_childblack=Ethnicity_1, p_childhisp=Ethnicity_2, p_childNAAN=Ethnicity_3, 
+         p_childwhite=Ethnicity_4, p_childasian=Ethnicity_5, p_childNHPI=Ethnicity_10, 
+         p_childmultiracial=Ethnicity_6, p_childotherrace=Ethnicity_7, 
+         p_childraceunknown=Ethnicity_8, p_childracedeclinetoresp=Ethnicity_9) %>% 
+  dplyr::select(-Ethnicity_1, -Ethnicity_2, -Ethnicity_3, -Ethnicity_4, -Ethnicity_5, 
+                -Ethnicity_6, -Ethnicity_7, -Ethnicity_8, -Ethnicity_9, -Ethnicity_10) %>% 
+  mutate(income_cat=ifelse(Income==1, "<25K", 
+                         ifelse(Income==2, "25-40K", 
+                                ifelse(Income==3, "40-75K",
+                                       ifelse(Income==4, "75-100K",
+                                              ifelse(Income==5, ">100K",
+                                                     ifelse(Income==6, "Don't Know", 
+                                                            ifelse(Income==7, "Decline to Respond",NA)))))))) %>% 
+  mutate(p_edu_cat=ifelse(P_Edu==1 & survey_name=="TAG - Parent Questionnaires V1","<HS",
+                          ifelse(P_Edu==2 & survey_name=="TAG - Parent Questionnaires V1","HS Degree",
+                                 ifelse(P_Edu>=3 & P_Edu<=4 & survey_name=="TAG - Parent Questionnaires V1", "Partial College or Specialized Training",
+                                        ifelse(P_Edu==5 & survey_name=="TAG - Parent Questionnaires V1", "College Degree",
+                                               ifelse(P_Edu==6 & survey_name=="TAG - Parent Questionnaires V1", "Graduate Degree", 
+                                                      ifelse(P_Edu>=7 & P_Edu<=8 & survey_name=="TAG - Parent Questionnaires V1", NA, 
+                                                             ifelse(P_Edu<=3 & survey_name!="TAG - Parent Questionnaires V1", "<HS", ifelse(P_Edu==4 & survey_name!="TAG - Parent Questionnaires V1", "HS Degree", ifelse(P_Edu>=5 & P_Edu<=7 & survey_name!="TAG - Parent Questionnaires V1", "Partial College or Specialized Training", ifelse(P_Edu==8 & survey_name!="TAG - Parent Questionnaires V1", "College Degree", ifelse(P_Edu>=9 & survey_name!="TAG - Parent Questionnaires V1", "Graduate Degree", NA)))))))))))) %>% 
+    mutate(spouse_edu_cat=ifelse(Spouse_Edu==1 & survey_name=="TAG - Parent Questionnaires V1","<HS",
+                          ifelse(Spouse_Edu==2 & survey_name=="TAG - Parent Questionnaires V1","HS Degree",
+                                 ifelse(Spouse_Edu>=3 & Spouse_Edu<=4 & survey_name=="TAG - Parent Questionnaires V1", "Partial College or Specialized Training",
+                                        ifelse(Spouse_Edu==5 & survey_name=="TAG - Parent Questionnaires V1", "College Degree",
+                                               ifelse(Spouse_Edu==6 & survey_name=="TAG - Parent Questionnaires V1", "Graduate Degree", 
+                                                      ifelse(Spouse_Edu>=7 & Spouse_Edu<=8 & survey_name=="TAG - Parent Questionnaires V1", NA, 
+                                                             ifelse(Spouse_Edu<=3 & survey_name!="TAG - Parent Questionnaires V1", "<HS", ifelse(Spouse_Edu==4 & survey_name!="TAG - Parent Questionnaires V1", "HS Degree", ifelse(Spouse_Edu>=5 & Spouse_Edu<=7 & survey_name!="TAG - Parent Questionnaires V1", "Partial College or Specialized Training", ifelse(Spouse_Edu==8 & survey_name!="TAG - Parent Questionnaires V1", "College Degree", ifelse(Spouse_Edu>=9 & survey_name!="TAG - Parent Questionnaires V1", "Graduate Degree", NA))))))))))))
+
+
+## Save it
+SES_Wave1_outdf <- SES_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name))  %>% filter(!grepl("TAG3|TAG4",tagid)) 
+SES_Wave1_TAG2_outdf <- SES_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name))  %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(SES_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SES_Wave1.csv"))
+write.csv(SES_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SES_Wave1_TAG2.csv"))
+
+SES_Wave2_outdf <- SES_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(SES_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SES_Wave2.csv"))
+
+SES_Wave2_TAG2_outdf <- SES_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(SES_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SES_Wave2_TAG2.csv"))
+
+SES_Wave3_outdf <- SES_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(SES_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SES_Wave3.csv"))
+
+SES_Wave3_TAG2_outdf <- SES_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(SES_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SES_Wave3_TAG2.csv"))
+
+SES_Wave4_outdf <- SES_Wave1 %>% filter(grepl("W4",survey_name))
+write.csv(SES_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/SES_Wave4.csv"))
+
+SES_Wave5_outdf <- SES_Wave1 %>% filter(grepl("W5",survey_name))
+write.csv(SES_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/SES_Wave5.csv"))
+
+SES_Wave6_outdf <- SES_Wave1 %>% filter(grepl("W6",survey_name))
+write.csv(SES_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/SES_Wave6.csv"))
+```
