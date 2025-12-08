@@ -1,0 +1,91 @@
+Prepare DIT
+```{r}
+DIT<-left_join(filter(cleaned_survey_data, grepl("DIT",item)) %>% 
+                 filter(!grepl("AUDIT",item)) %>% 
+                 filter(!grepl("CUDIT",item)) %>% 
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>% 
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+DIT_Wave1<-left_join(DIT,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V4 - Current",sa_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                                   ifelse(survey_name=="TAG - Sess 1 - V2",sa_date,
+                                          ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 )))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(DIT_1=ifelse(DIT_1==1,5,
+                      ifelse(DIT_1==2,4,
+                             ifelse(DIT_1==3,3,
+                                    ifelse(DIT_1==4,2,
+                                           ifelse(DIT_1==5,1,
+                                                  NA))))),
+         DIT_2=ifelse(DIT_2==1,5,
+                      ifelse(DIT_2==2,4,
+                             ifelse(DIT_2==3,3,
+                                    ifelse(DIT_2==4,2,
+                                           ifelse(DIT_2==5,1,
+                                                  NA))))),
+         DIT_3=ifelse(DIT_3==1,5,
+                      ifelse(DIT_3==2,4,
+                             ifelse(DIT_3==3,3,
+                                    ifelse(DIT_3==4,2,
+                                           ifelse(DIT_3==5,1,
+                                                  NA))))),
+         DIT_4=ifelse(DIT_4==1,5,
+                      ifelse(DIT_4==2,4,
+                             ifelse(DIT_4==3,3,
+                                    ifelse(DIT_4==4,2,
+                                           ifelse(DIT_4==5,1,
+                                                  NA)))))) %>%
+  mutate(DIT_belonging_total=rowSums(cbind(DIT_1,DIT_2,DIT_3,DIT_4), na.rm=F),
+         DIT_intel_total=rowSums(cbind(DIT_5,DIT_6,DIT_7), na.rm=F),
+         DIT_moral_total=rowSums(cbind(DIT_8,DIT_9,DIT_10), na.rm=F),
+         DIT_group_total=rowSums(cbind(DIT_11,DIT_12,DIT_13,DIT_14), na.rm=F),
+         DIT_belonging_mean=round(rowMeans(cbind(DIT_1,DIT_2,DIT_3,DIT_4), na.rm=T),3),
+         DIT_intel_mean=round(rowMeans(cbind(DIT_5,DIT_6,DIT_7), na.rm=T),3),
+         DIT_moral_mean=round(rowMeans(cbind(DIT_8,DIT_9,DIT_10), na.rm=T),3),
+         DIT_group_mean=round(rowMeans(cbind(DIT_11,DIT_12,DIT_13,DIT_14), na.rm=T),3))
+
+## Save it
+DIT_Wave1_outdf <- DIT_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name))%>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+DIT_Wave1_TAG2_outdf <- DIT_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name))%>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(DIT_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/DIT_Wave1.csv"))
+write.csv(DIT_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/DIT_Wave1_TAG2.csv"))
+
+DIT_Wave2_outdf <- DIT_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(DIT_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/DIT_Wave2.csv"))
+
+DIT_Wave2_TAG2_outdf <- DIT_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(DIT_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/DIT_Wave2_TAG2.csv"))
+
+DIT_Wave3_outdf <- DIT_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(DIT_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/DIT_Wave3.csv"))
+
+#not yet...
+DIT_Wave3_TAG2_outdf <- DIT_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+#write.csv(DIT_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/DIT_Wave3_TAG2.csv"))
+
+DIT_Wave4_outdf <- DIT_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(DIT_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/DIT_Wave4.csv"))
+
+DIT_Wave5_outdf <- DIT_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(DIT_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/DIT_Wave5.csv"))
+
+DIT_Wave6_outdf <- DIT_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(DIT_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/DIT_Wave6.csv"))
+```
