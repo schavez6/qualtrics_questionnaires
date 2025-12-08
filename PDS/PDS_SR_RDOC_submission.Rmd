@@ -1,5 +1,5 @@
 ```{r}
-## Make RDOC ready file
+## Make RDOC ready file #note - this is self-report data only
 PDS_Wave1$survey_date <- as.character(PDS_Wave1$survey_date)
 ndar_pds_data <- left_join(PDS_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
   filter(!is.na(survey_date),!survey_date=="") %>%
