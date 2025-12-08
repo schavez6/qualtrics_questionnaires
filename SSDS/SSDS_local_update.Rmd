@@ -1,0 +1,138 @@
+Prepare SSDS
+```{r}
+SSDS<-left_join(filter(cleaned_survey_data, grepl("SSDS",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value))%>%
+                 filter(!value=="") %>%
+                 filter(!grepl("TAG160",tagid) | grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+                 #need to readd TAG160 at Wave 1 when we decide which answers we're including
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+if (length(SSDS$tagid) == length(unique(SSDS$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+TAG149_special<-left_join(filter(cleaned_survey_data, grepl("SSDS",item)) %>%
+                            mutate(value=as.numeric(value)) %>% 
+                            filter(!is.na(value)) %>%
+                            filter(!value=="") %>%
+                            filter(tagid=="TAG149") %>%
+                            filter(!grepl("W2", survey_name)) %>% 
+                            filter(!grepl("W3", survey_name)) %>% 
+                            filter(!grepl("W4", survey_name)) %>% 
+                            filter(!grepl("W5", survey_name)) %>% 
+                            filter(!grepl("W6", survey_name)) %>% 
+                            distinct(tagid,item,value,.keep_all = FALSE) %>%
+                            spread(item,value),
+                          redcap_cleaned %>%
+                            filter(!is.na(dob),!is.na(sa_date),tagid=="TAG149") %>%
+                            dplyr::select(tagid, sa_date, sb_date, dob),by="tagid") %>%
+  mutate(survey_name="TAG - Sess 2 - V3 for Home - (SSDS_2 and on)")
+
+TAG149_special <- bind_rows(SSDS %>% filter(tagid=="TAG149" & grepl("W2|W3|W4|W5|W6", survey_name)), TAG149_special)
+
+SSDS <- bind_rows(SSDS %>% filter(!tagid=="TAG149"),TAG149_special)
+  
+if (length(SSDS$tagid) == length(unique(SSDS$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+x=c("TAG - Sess 2 - V1",
+    "TAG - Sess 2 - V2",
+    "TAG - Sess 2 - V3 - minus CTQ",
+    "TAG - Sess 2 - V3 for Home - (SSDS_2 and on)")
+
+SSDS_Wave1<-left_join(SSDS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,    
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%    
+  mutate(SSDS_1 = ifelse(grepl(paste0(x,collapse="|"),survey_name),NA,   #NV updated due to errors in some Qualtrics versions
+                            ifelse(tagid=="TAG149",NA,SSDS_13)),
+         SSDS_13 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_13,
+                            ifelse(tagid=="TAG149",SSDS_13,SSDS_14)),
+         SSDS_14 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_14,
+                            ifelse(tagid=="TAG149",SSDS_14,SSDS_15)),
+         SSDS_15 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_15,
+                            ifelse(tagid=="TAG149",SSDS_15,SSDS_16)),
+         SSDS_16 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_16,
+                            ifelse(tagid=="TAG149",SSDS_16,SSDS_17)),
+         SSDS_17 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_17,
+                            ifelse(tagid=="TAG149",SSDS_17,SSDS_18)),
+         SSDS_18 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_18,
+                            ifelse(tagid=="TAG149",SSDS_18,SSDS_19)),
+         SSDS_19 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_19,
+                            ifelse(tagid=="TAG149",SSDS_19,SSDS_20)),
+         SSDS_20 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_20,
+                            ifelse(tagid=="TAG149",SSDS_20,SSDS_21)),
+         SSDS_21 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_21,
+                            ifelse(tagid=="TAG149",SSDS_21,SSDS_22)),
+         SSDS_22 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_22,
+                            ifelse(tagid=="TAG149",SSDS_22,SSDS_23)),
+         SSDS_23 = ifelse(grepl(paste0(x,collapse="|"),survey_name),SSDS_23,
+                            ifelse(tagid=="TAG149",SSDS_23,SSDS_24))) %>% 
+  mutate(SSDS_family_disclosure_total=rowSums(cbind(SSDS_1,SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8), na.rm=F),
+         SSDS_friend_disclosure_total=rowSums(cbind(SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15), na.rm=F),
+         SSDS_physdev_disclosure_total=rowSums(cbind(SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23), na.rm=F),
+         SSDS_disclosure_total=rowSums(cbind(SSDS_1,SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8,SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15,SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23), na.rm=F),
+         SSDS_family_disclosure_mean=round(rowMeans(cbind(SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8), na.rm=T),3),
+         SSDS_friend_disclosure_mean=round(rowMeans(cbind(SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15), na.rm=T),3),
+         SSDS_physdev_disclosure_mean=round(rowMeans(cbind(SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23), na.rm=T),3),
+         SSDS_disclosure_mean=round(rowMeans(cbind(SSDS_1,SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8,SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15,SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23), na.rm=T),3)) %>%
+  dplyr::select(-SSDS_24) %>%
+  mutate(SSDS_family_disclosure_N=8,
+         SSDS_family_disclosure_missing=rowSums(is.na(cbind(SSDS_1,SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8))),
+         SSDS_family_disclosure_missing_perc=100*(rowSums(is.na(cbind(SSDS_1,SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8)))/8),
+         SSDS_friend_disclosure_N=7,
+         SSDS_friend_disclosure_missing=rowSums(is.na(cbind(SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15))),
+         SSDS_friend_disclosure_missing_perc=100*(rowSums(is.na(cbind(SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15)))/7),
+         SSDS_physdev_disclosure_N=8,
+         SSDS_physdev_disclosure_missing=rowSums(is.na(cbind(SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23))),
+         SSDS_physdev_disclosure_missing_perc=100*(rowSums(is.na(cbind(SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23)))/8),
+         SSDS_disclosure_N=23,
+         SSDS_disclosure_missing=rowSums(is.na(cbind(SSDS_1,SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8,SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15,SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23))),
+         SSDS_disclosure_missing_perc=100*(rowSums(is.na(cbind(SSDS_1,SSDS_2,SSDS_3,SSDS_4,SSDS_5,SSDS_6,SSDS_7,SSDS_8,SSDS_9,SSDS_10,SSDS_11,SSDS_12,SSDS_13,SSDS_14,SSDS_15,SSDS_16,SSDS_17,SSDS_18,SSDS_19,SSDS_20,SSDS_21,SSDS_22,SSDS_23)))/23)) #NV:added global disclosure scale, as well as missing percentages.
+  
+## Save it
+SSDS_Wave1_outdf <- SSDS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>%  
+  filter(!grepl("TAG3|TAG4",tagid))
+SSDS_Wave1_TAG2_outdf <- SSDS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>%  
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SSDS_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SSDS_Wave1.csv"))
+write.csv(SSDS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SSDS_Wave1_TAG2.csv"))
+
+SSDS_Wave2_outdf <- SSDS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(SSDS_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SSDS_Wave2.csv"))
+
+SSDS_Wave2_TAG2_outdf <- SSDS_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SSDS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SSDS_Wave2_TAG2.csv"))
+
+SSDS_Wave3_outdf <- SSDS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(SSDS_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SSDS_Wave3.csv"))
+
+#not yet...
+SSDS_Wave3_TAG2_outdf <- SSDS_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(SSDS_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SSDS_Wave3_TAG2.csv"))
+
+SSDS_Wave4_outdf <- SSDS_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(SSDS_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/SSDS_Wave4.csv"))
+
+SSDS_Wave5_outdf <- SSDS_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(SSDS_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/SSDS_Wave5.csv"))
+
+SSDS_Wave6_outdf <- SSDS_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(SSDS_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/SSDS_Wave6.csv"))
+```
