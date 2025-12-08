@@ -1,0 +1,42 @@
+```{r}
+## Make RDOC ready file
+ndar_panas_data <- left_join(PANAS_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         panas_21=PANAS_C_1,
+         panas_15=PANAS_C_2,
+         panas_17=PANAS_C_3,
+         panas_23=PANAS_C_4,
+         panas_8=PANAS_C_5,
+         panas_20=PANAS_C_6,
+         panas_30=PANAS_C_7,
+         panas_13=PANAS_C_8,
+         panas_19=PANAS_C_9,
+         panas_2=PANAS_C_10,
+         sum_pos=-9,
+         sum_neg=-9)
+
+ndar_panas_data <- left_join(ndar_key,ndar_panas_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("PANAS",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+panas_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/panas_c01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+panas_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/panas_c01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+panas_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/panas_c01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+panas_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/panas_c01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+panas_temp_df<-data.frame(panas_temp)
+ndar_panas_data<-rbind(panas_temp_df,ndar_panas_data)
+
+part2<-colnames(ndar_panas_data)
+part3<-as.matrix(ndar_panas_data)
+colnames(part3)<-NULL
+together<-rbind(panas_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/panas_c01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,panas_df_header,panas_temp,panas_temp_df,PANAS,PANAS_Wave1_means,PANAS_Wave1,PANAS_Wave1_totals,PANAS_Wave1_totals_graph,
+   PANAS_Wave1_cor_graph)
+```
