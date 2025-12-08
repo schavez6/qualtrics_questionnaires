@@ -1,0 +1,63 @@
+Flourishing Scale
+```{r}
+FS<-left_join(filter(cleaned_survey_data, grepl("Flourishing",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+FS_Wave3<-left_join(FS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(FS_total=rowSums(cbind(Flourishing_Scale_1,Flourishing_Scale_2,Flourishing_Scale_3,
+                                Flourishing_Scale_4,Flourishing_Scale_5,Flourishing_Scale_6,
+                                Flourishing_Scale_7,Flourishing_Scale_8),na.rm=F))
+  
+
+## Save it
+FS_Wave1_TAG2_outdf <- FS_Wave3 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(FS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/FS_Wave1_TAG2.csv"))
+
+FS_Wave2_TAG2_outdf <- FS_Wave3 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(FS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/FS_Wave2_TAG2.csv"))
+
+FS_Wave3_outdf <- FS_Wave3 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(FS_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/FS_Wave3.csv"))
+
+#not yet...
+FS_Wave3_TAG2_outdf <- FS_Wave3 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(FS_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/FS_Wave3_TAG2.csv"))
+
+FS_Wave4_outdf <- FS_Wave3 %>% filter(grepl("W4",survey_name)) 
+write.csv(FS_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/FS_Wave4.csv"))
+
+FS_Wave5_outdf <- FS_Wave3 %>% filter(grepl("W5",survey_name)) 
+write.csv(FS_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/FS_Wave5.csv"))
+
+FS_Wave6_outdf <- FS_Wave3 %>% filter(grepl("W6",survey_name)) 
+write.csv(FS_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/FS_Wave6.csv"))
+
+FS_WaveACE1_outdf <- FS_Wave3 %>% filter(grepl("Month 1",survey_name)) 
+write.csv(FS_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/FS_WaveACE1.csv"))
+
+FS_WaveACE2_outdf <- FS_Wave3 %>% filter(grepl("Month 2",survey_name)) 
+write.csv(FS_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/FS_WaveACE2.csv"))
+
+FS_WaveACE3_outdf <- FS_Wave3 %>% filter(grepl("Month 3",survey_name)) 
+write.csv(FS_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/FS_WaveACE3.csv"))
+```
