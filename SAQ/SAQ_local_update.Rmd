@@ -1,0 +1,113 @@
+Prepare SAQ
+```{r}
+SAQ<-left_join(filter(cleaned_survey_data, grepl("SAQ",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+if (length(SAQ$tagid) == length(unique(SAQ$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+TAG023_special<-left_join(filter(cleaned_survey_data, grepl("SAQ",item)) %>%
+                            mutate(value=as.numeric(value)) %>% 
+                            filter(!is.na(value)) %>%
+                            filter(!value=="") %>%
+                            filter(tagid=="TAG023") %>%
+                            filter(survey_name=="TAG - Sess 1 - V1 - (EATQ-R_2 & on)") %>%
+                            distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                            spread(item,value),
+                          redcap_cleaned %>%
+                            filter(!is.na(dob),!is.na(sa_date),tagid=="TAG023") %>%
+                            dplyr::select(tagid, sa_date, sb_date, dob),by="tagid") 
+
+TAG002_special<-left_join(filter(cleaned_survey_data, grepl("SAQ",item)) %>%
+                            mutate(value=as.numeric(value)) %>% 
+                            filter(!is.na(value)) %>%
+                            filter(!value=="") %>%
+                            filter(tagid=="TAG002") %>% 
+                            distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                            #filter(survey_name=="TAG - Sess 1 - V1 - (SAQ & on)"|survey_name=="TAG - Sess 1 - V1") %>% 
+                            spread(item,value),
+                          redcap_cleaned %>%
+                            filter(!is.na(dob),!is.na(sa_date),tagid=="TAG002") %>%
+                            dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+TAG002_w23456_special <- filter(TAG002_special, grepl("W2|W3|W4|W5|W6",survey_name))
+
+#fix this
+TAG002_w1_special <- TAG002_special %>% 
+  filter(survey_name=="TAG - Sess 1 - V1 - (SAQ & on)"|survey_name=="TAG - Sess 1 - V1") %>%
+                        gather("item","value") %>% 
+                        distinct(item,value,.keep_all = F) %>% 
+                        filter(!value=="") %>% 
+                        filter(!value=="TAG - Sess 1 - V1") %>% 
+  filter(!grepl("2017|2018|2019|2020|2021|2022|2023|2024",value)) %>% 
+  spread(item,value,convert = T)
+
+TAG002_special <- rbind(TAG002_w1_special,TAG002_w23456_special)
+
+SAQ <- bind_rows(SAQ %>% filter(!tagid=="TAG023"),TAG023_special)
+SAQ <- bind_rows(SAQ %>% filter(!tagid=="TAG002"),TAG002_special)
+SAQ <- SAQ %>% filter(!(tagid=="TAG145" & survey_name=="TAG - Home Qs - V3 - with SID embedded"))
+  
+
+if (length(SAQ$tagid) == length(unique(SAQ$tagid))){
+  print("No duplicate TAGIDs in data")
+  } else {
+      print("DUPLICATE TAGIDs in data")
+  }
+
+SAQ_Wave1<-left_join(SAQ,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=
+           ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                  ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                  )))%>%
+  #dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(SAQ_socdevgoals_total=rowSums(cbind(SAQ_1,SAQ_2,SAQ_3,SAQ_4,SAQ_5,SAQ_6,SAQ_7,SAQ_8), na.rm=F),
+         SAQ_approachgoals_total=rowSums(cbind(SAQ_9,SAQ_10,SAQ_11,SAQ_12,SAQ_13,SAQ_14), na.rm=F),
+         SAQ_avoidgoals_total=rowSums(cbind(SAQ_15,SAQ_16,SAQ_17,SAQ_18,SAQ_19,SAQ_20,SAQ_21), na.rm=F),
+         SAQ_socdevgoals_mean=rowMeans(cbind(SAQ_1,SAQ_2,SAQ_3,SAQ_4,SAQ_5,SAQ_6,SAQ_7,SAQ_8), na.rm=T),
+         SAQ_approachgoals_mean=rowMeans(cbind(SAQ_9,SAQ_10,SAQ_11,SAQ_12,SAQ_13,SAQ_14), na.rm=T),
+         SAQ_avoidgoals_mean=rowMeans(cbind(SAQ_15,SAQ_16,SAQ_17,SAQ_18,SAQ_19,SAQ_20,SAQ_21), na.rm=T))
+
+## Save it
+SAQ_Wave1_outdf <- SAQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>%  
+  filter(!grepl("TAG3|TAG4",tagid))
+SAQ_Wave1_TAG2_outdf <- SAQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>%  
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SAQ_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SAQ_Wave1.csv"))
+write.csv(SAQ_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SAQ_Wave1_TAG2.csv"))
+
+SAQ_Wave2_outdf <- SAQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(SAQ_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SAQ_Wave2.csv"))
+
+SAQ_Wave2_TAG2_outdf <- SAQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SAQ_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SAQ_Wave2_TAG2.csv"))
+
+SAQ_Wave3_outdf <- SAQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(SAQ_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SAQ_Wave3.csv"))
+
+#not yet...
+SAQ_Wave3_TAG2_outdf <- SAQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(SAQ_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SAQ_Wave3_TAG2.csv"))
+
+SAQ_Wave4_outdf <- SAQ_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(SAQ_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/SAQ_Wave4.csv"))
+
+SAQ_Wave5_outdf <- SAQ_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(SAQ_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/SAQ_Wave5.csv"))
+
+SAQ_Wave6_outdf <- SAQ_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(SAQ_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/SAQ_Wave6.csv"))
+```
