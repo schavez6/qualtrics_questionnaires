@@ -1,0 +1,47 @@
+```{r}
+## Make RDOC ready file
+ndar_dit_data <- left_join(DIT_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         site="University of Oregon",
+         study="TAG study",
+         dit_1=DIT_1,
+         dit_2=DIT_2,
+         dit_3=DIT_3,
+         dit_4=DIT_4,
+         dit_5=DIT_5,
+         dit_6=DIT_6,
+         dit_7=DIT_7,
+         dit_8=DIT_8,
+         dit_9=DIT_9,
+         dit_10=DIT_10,
+         dit_11=DIT_11,
+         dit_12=DIT_12,
+         dit_13=DIT_13,
+         dit_14=DIT_14,
+         dit_intel=DIT_intel_total,
+         dit_moral=DIT_moral_total,
+         dit_group=DIT_group_total)
+ndar_dit_data <- left_join(ndar_key,ndar_dit_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("DIT",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type)
+dit_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/dit01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+dit_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/dit01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+dit_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/dit01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+dit_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/dit01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+dit_temp_df<-data.frame(dit_temp)
+ndar_dit_data<-rbind(dit_temp_df,ndar_dit_data)
+
+part2<-colnames(ndar_dit_data)
+part3<-as.matrix(ndar_dit_data)
+colnames(part3)<-NULL
+together<-rbind(dit_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/dit01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,dit_df_header,dit_temp,dit_temp_df,DIT,DIT_Wave1,DIT_Wave1_means,DIT_Wave1_means_graph,DIT_Wave1_totals,DIT_Wave1_totals_graph)
+```
