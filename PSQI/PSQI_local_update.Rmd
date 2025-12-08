@@ -1,0 +1,151 @@
+Prepare PSQI_MEQ # Do not submit to RDOC... warning... scoring not complete... only raw output and some constructed variables... script in progress
+```{r}
+PSQI<-left_join(filter(cleaned_survey_data, grepl("PSQI_MEQ",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                  filter(!grepl("ACE", survey_name)) %>% 
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")         
+
+PSQI_Wave1<-left_join(PSQI,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+PSQI_M_Wave1 <- PSQI_Wave1 %>%
+  mutate(PSQI_MEQ_1_1_1 = ifelse(is.na(`PSQI_MEQ_1#1_1`), PSQI_MEQ_1_1_1, `PSQI_MEQ_1#1_1`),
+         PSQI_MEQ_1_1_2 = ifelse(is.na(`PSQI_MEQ_1#2_1`), PSQI_MEQ_1_1_2, `PSQI_MEQ_1#2_1`),
+         PSQI_MEQ_1_1_3 = ifelse(is.na(`PSQI_MEQ_1#3_1`), PSQI_MEQ_1_1_3, `PSQI_MEQ_1#3_1`),
+         PSQI_MEQ_1_2_1 = ifelse(is.na(`PSQI_MEQ_1#1_2`), PSQI_MEQ_1_2_1, `PSQI_MEQ_1#1_2`),
+         PSQI_MEQ_1_2_2 = ifelse(is.na(`PSQI_MEQ_1#2_2`), PSQI_MEQ_1_2_2, `PSQI_MEQ_1#2_2`),
+         PSQI_MEQ_1_2_3 = ifelse(is.na(`PSQI_MEQ_1#3_2`), PSQI_MEQ_1_2_3, `PSQI_MEQ_1#3_2`),
+         PSQI_MEQ_15_1_1 = ifelse(is.na(`PSQI_MEQ_15#1_1`), PSQI_MEQ_15_1_1, `PSQI_MEQ_15#1_1`),
+         PSQI_MEQ_15_1_2 = ifelse(is.na(`PSQI_MEQ_15#2_1`), PSQI_MEQ_15_1_2, `PSQI_MEQ_15#2_1`),
+         PSQI_MEQ_15_1_3 = ifelse(is.na(`PSQI_MEQ_15#3_1`), PSQI_MEQ_15_1_3, `PSQI_MEQ_15#3_1`),
+         PSQI_MEQ_18_1_1 = ifelse(is.na(`PSQI_MEQ_18#1_1`), PSQI_MEQ_18_1_1, `PSQI_MEQ_18#1_1`),
+         PSQI_MEQ_18_1_2 = ifelse(is.na(`PSQI_MEQ_18#2_1`), PSQI_MEQ_18_1_2, `PSQI_MEQ_18#2_1`),
+         PSQI_MEQ_18_1_3 = ifelse(is.na(`PSQI_MEQ_18#3_1`), PSQI_MEQ_18_1_3, `PSQI_MEQ_18#3_1`),
+         PSQI_MEQ_3_1_1 = ifelse(is.na(`PSQI_MEQ_3#1_1`), PSQI_MEQ_3_1_1, `PSQI_MEQ_3#1_1`),
+         PSQI_MEQ_3_1_2 = ifelse(is.na(`PSQI_MEQ_3#2_1`), PSQI_MEQ_3_1_2, `PSQI_MEQ_3#2_1`),
+         PSQI_MEQ_3_1_3 = ifelse(is.na(`PSQI_MEQ_3#3_1`), PSQI_MEQ_3_1_3, `PSQI_MEQ_3#3_1`),
+         PSQI_MEQ_3_2_1 = ifelse(is.na(`PSQI_MEQ_3#1_2`), PSQI_MEQ_3_2_1, `PSQI_MEQ_3#1_2`),
+         PSQI_MEQ_3_2_2 = ifelse(is.na(`PSQI_MEQ_3#2_2`), PSQI_MEQ_3_2_2, `PSQI_MEQ_3#2_2`),
+         PSQI_MEQ_3_2_3 = ifelse(is.na(`PSQI_MEQ_3#3_2`), PSQI_MEQ_3_2_3, `PSQI_MEQ_3#3_2`),
+         PSQI_MEQ_16_1_1 = ifelse(is.na(`PSQI_MEQ_16#1_1`), NA, `PSQI_MEQ_16#1_1`),
+         PSQI_MEQ_16_1_2 = ifelse(is.na(`PSQI_MEQ_16#2_1`), NA, `PSQI_MEQ_16#2_1`),
+         PSQI_MEQ_16_1_3 = ifelse(is.na(`PSQI_MEQ_16#3_1`), NA, `PSQI_MEQ_16#3_1`),
+         PSQI_MEQ_19_1_1 = ifelse(is.na(`PSQI_MEQ_19#1_1`), NA, `PSQI_MEQ_19#1_1`),
+         PSQI_MEQ_19_1_2 = ifelse(is.na(`PSQI_MEQ_19#2_1`), NA, `PSQI_MEQ_19#2_1`),
+         PSQI_MEQ_19_1_3 = ifelse(is.na(`PSQI_MEQ_19#3_1`), NA, `PSQI_MEQ_19#3_1`)) %>% 
+  dplyr::select(-`PSQI_MEQ_1#1_1`, -`PSQI_MEQ_1#2_1`, -`PSQI_MEQ_1#3_1`,
+                -`PSQI_MEQ_1#1_2`, -`PSQI_MEQ_1#2_2`, -`PSQI_MEQ_1#3_2`,
+                -`PSQI_MEQ_15#1_1`, -`PSQI_MEQ_15#2_1`, -`PSQI_MEQ_15#3_1`,
+                -`PSQI_MEQ_18#1_1`, -`PSQI_MEQ_18#2_1`, -`PSQI_MEQ_18#3_1`,
+                -`PSQI_MEQ_3#1_1`, -`PSQI_MEQ_3#2_1`, -`PSQI_MEQ_3#3_1`,
+                -`PSQI_MEQ_3#1_2`, -`PSQI_MEQ_3#2_2`, -`PSQI_MEQ_3#3_2`,
+                -`PSQI_MEQ_16#1_1`, -`PSQI_MEQ_16#2_1`, -`PSQI_MEQ_16#3_1`,
+                -`PSQI_MEQ_19#1_1`, -`PSQI_MEQ_19#2_1`, -`PSQI_MEQ_19#3_1`,)
+  
+
+PSQI_MEQ_Wave1 <- PSQI_M_Wave1 %>% 
+  mutate(component1 = ifelse(PSQI_MEQ_12==1,0, 
+                           ifelse(PSQI_MEQ_12==2,1, 
+                                  ifelse(PSQI_MEQ_12==3,2, 
+                                         ifelse(PSQI_MEQ_12==4,3,NA)))),
+         q2weekaverage = ((PSQI_MEQ_2_1*5)+(PSQI_MEQ_2_2*2))/7,
+         comp2p1 = ifelse(q2weekaverage<=15,0,NA),
+         comp2p1 = ifelse(16<=q2weekaverage&q2weekaverage<=30,1,comp2p1),
+         comp2p1 = ifelse(31<=q2weekaverage&q2weekaverage<=60,2,comp2p1),
+         comp2p1 = ifelse(q2weekaverage>60,4,comp2p1), 
+         comp2p2 = ifelse(PSQI_MEQ_5_1==1,0,
+                               ifelse(PSQI_MEQ_5_1==2,1,
+                                      ifelse(PSQI_MEQ_5_1==3,2,
+                                             ifelse(PSQI_MEQ_5_1==4,3,NA)))),
+         component2 = ifelse(comp2p1 + comp2p2 ==0,0, 
+                             ifelse(comp2p1 + comp2p2 ==1,1,
+                                    ifelse(comp2p1 + comp2p2 ==2,1,
+                                           ifelse(comp2p1 + comp2p2 ==3,2,
+                                                  ifelse(comp2p1 + comp2p2 ==4,2,
+                                                         ifelse(comp2p1 + comp2p2 ==5,3,
+                                                                ifelse(comp2p1 + comp2p2 ==6,3,NA))))))),
+         q4weekaverage= ((PSQI_MEQ_4_1*5)+(PSQI_MEQ_4_2*2))/7,
+         component3 = ifelse(q4weekaverage>7,0,NA),
+         component3 = ifelse(6<q4weekaverage&q4weekaverage<=7,1,component3),
+         component3 = ifelse(5<=q4weekaverage&q4weekaverage<=6,2,component3),
+         component3 = ifelse(q4weekaverage<5,3,component3),
+         wkdaybedtime = ifelse((PSQI_MEQ_1_1_1==12&PSQI_MEQ_1_1_2==1&PSQI_MEQ_1_1_3==1),0,
+                       ifelse(PSQI_MEQ_1_1_3==1,((PSQI_MEQ_1_1_1*60)+((PSQI_MEQ_1_1_2-1)*5)),
+                              ifelse(PSQI_MEQ_1_1_3==2,
+                                     (((12+PSQI_MEQ_1_1_1)*60)+((PSQI_MEQ_1_1_2-1)*5)),NA))), 
+         wkendbedtime = ifelse((PSQI_MEQ_1_2_1==12&PSQI_MEQ_1_2_2==1&PSQI_MEQ_1_2_3==1),0,
+                       ifelse(PSQI_MEQ_1_2_3==1,((PSQI_MEQ_1_2_1*60)+((PSQI_MEQ_1_2_2-1)*5)),
+                              ifelse(PSQI_MEQ_1_2_3==2,
+                                     (((12+PSQI_MEQ_1_2_1)*60)+((PSQI_MEQ_1_2_2-1)*5)),NA))),
+         wkdaywaketime = ifelse((PSQI_MEQ_3_1_1==12&PSQI_MEQ_3_1_2==1&PSQI_MEQ_3_1_3==1),0,
+                       ifelse(PSQI_MEQ_3_1_3==1,((PSQI_MEQ_3_1_1*60)+((PSQI_MEQ_3_1_2-1)*5)),
+                              ifelse(PSQI_MEQ_3_1_3==2,
+                                     (((12+PSQI_MEQ_3_1_1)*60)+((PSQI_MEQ_3_1_2-1)*5)),NA))), 
+         wkendwaketime = ifelse((PSQI_MEQ_3_2_1==12&PSQI_MEQ_3_2_2==1&PSQI_MEQ_3_2_3==1),0,
+                       ifelse(PSQI_MEQ_3_2_3==1,((PSQI_MEQ_3_2_1*60)+((PSQI_MEQ_3_2_2-1)*5)),
+                              ifelse(PSQI_MEQ_3_2_3==2,
+                                     (((12+PSQI_MEQ_3_2_1)*60)+((PSQI_MEQ_3_2_2-1)*5)),NA))),
+         wkdaydur = ifelse((wkdaybedtime>=720&wkdaywaketime<=720),((1440-wkdaybedtime)+wkdaywaketime),
+                           (wkdaywaketime-wkdaybedtime)),
+         wkdaydur = ifelse(wkdaydur>=0,wkdaydur/60,NA),
+         wkenddur = ifelse(wkendbedtime>=720,((1440-wkendbedtime)+wkendwaketime),
+                           (wkendwaketime-wkendbedtime)),
+         wkenddur = ifelse(wkenddur>=0,wkenddur/60,NA))
+         #,
+         #wkdaybedtime = ifelse(wkdaybedtime=="NA : NA NA", NA, wkdaybedtime))
+
+#####SJC - need to finish coding this########
+
+## Save it
+PSQI_Wave1_outdf <- PSQI_MEQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>%  
+  filter(!grepl("TAG3|TAG4",tagid))
+PSQI_Wave1_TAG2_outdf <- PSQI_MEQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>%  
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PSQI_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PSQI_MEQ_Wave1.csv"))
+write.csv(PSQI_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PSQI_MEQ_Wave1_TAG2.csv"))
+
+PSQI_Wave2_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(PSQI_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PSQI_MEQ_Wave2.csv"))
+
+PSQI_Wave2_TAG2_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PSQI_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PSQI_MEQ_Wave2_TAG2.csv"))
+
+PSQI_Wave3_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(PSQI_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PSQI_MEQ_Wave3.csv"))
+
+#not yet...
+PSQI_Wave3_TAG2_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(PSQI_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PSQI_MEQ_Wave3_TAG2.csv"))
+
+PSQI_Wave4_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("W4",survey_name))
+write.csv(PSQI_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/PSQI_MEQ_Wave4.csv"))
+
+PSQI_Wave5_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("W5",survey_name))
+write.csv(PSQI_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/PSQI_MEQ_Wave5.csv"))
+
+PSQI_Wave6_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("W6",survey_name))
+write.csv(PSQI_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/PSQI_MEQ_Wave6.csv"))
+
+PSQI_WaveACE1_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("Month 1",survey_name))
+write.csv(PSQI_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/PSQI_MEQ_WaveACE1.csv"))
+
+PSQI_WaveACE2_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("Month 2",survey_name))
+write.csv(PSQI_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/PSQI_MEQ_WaveACE2.csv"))
+
+PSQI_WaveACE3_outdf <- PSQI_MEQ_Wave1 %>% filter(grepl("Month 3",survey_name))
+write.csv(PSQI_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/PSQI_MEQ_WaveACE3.csv"))
+```
