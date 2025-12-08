@@ -1,0 +1,56 @@
+```{r}
+## Make RDOC ready file
+ndar_saq_data <-  left_join(SAQ_Wave1,distinct(redcap_cleaned, tagid, dob),by=c("tagid","dob")) %>%
+  filter(!is.na(survey_date),!survey_date=="") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         sagq_1=SAQ_1,
+         sagq_2=SAQ_2,
+         sagq_3=SAQ_3,
+         sagq_4=SAQ_4,
+         sagq_5=SAQ_5,
+         sagq_6=SAQ_6,
+         sagq_7=SAQ_7,
+         sagq_8=SAQ_8,
+         sagq_9=SAQ_9,
+         sagq_10=SAQ_10,
+         sagq_11=SAQ_11,
+         sagq_12=SAQ_12,
+         sagq_13=SAQ_13,
+         sagq_14=SAQ_14,
+         sagq_15=SAQ_15,
+         sagq_16=SAQ_16,
+         sagq_17=SAQ_17,
+         sagq_18=SAQ_18,
+         sagq_19=SAQ_19,
+         sagq_20=SAQ_20,
+         sagq_21=SAQ_21,
+         sag_sdg=ifelse(!is.na(SAQ_socdevgoals_total),SAQ_socdevgoals_total,NA),
+         sag_dapg=ifelse(!is.na(SAQ_approachgoals_total),SAQ_approachgoals_total,NA),
+         sag_davg=ifelse(!is.na(SAQ_avoidgoals_total),SAQ_avoidgoals_total,NA))
+
+ndar_saq_data <- left_join(ndar_key,ndar_saq_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("SAQ",ignore.case = FALSE),-dob,-survey_date,-survey_name,-tagid,-anontagid,-ID,-guid,-survey_type, -sa_date, -sb_date, -qualtrics_date)
+saq_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/sag01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+saq_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/sag01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+saq_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/sag01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+saq_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/sag01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+saq_temp_df<-data.frame(saq_temp)
+ndar_saq_data<-rbind(saq_temp_df,ndar_saq_data)
+
+part2<-colnames(ndar_saq_data)
+part3<-as.matrix(ndar_saq_data)
+colnames(part3)<-NULL
+together<-rbind(saq_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/sag01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(together,part2,part3,saq_df_header,saq_temp,saq_temp_df,SAQ,SAQ_Wave1,SAQ_Wave1_means,SAQ_Wave1_means_graph,SAQ_Wave1_socdev_items,
+   SAQ_Wave1_socdev_items_graph,SAQ_Wave1_totals,SAQ_Wave1_totals_graph,TAG002_special,TAG023_special)
+
+
+```
