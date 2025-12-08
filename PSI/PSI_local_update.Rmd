@@ -1,0 +1,151 @@
+Prepare PSI-SF
+```{r}
+PSI<-left_join(filter(cleaned_survey_data, grepl("PSI",item)) %>% 
+                   mutate(value=as.numeric(value)) %>% 
+                   filter(!is.na(value)) %>% 
+                   distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                   spread(item,value),
+                 redcap_cleaned %>%
+                   filter(!is.na(dob),!is.na(sa_date)) %>%
+                   dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+PSI_Wave1<-left_join(PSI,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>% 
+  dplyr::select(-value) %>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V4 - Current",sa_date,
+                            ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                                   ifelse(survey_name=="TAG - Sess 1 - V2",sa_date,
+                                          ifelse(survey_name=="TAG - Sess 1 - V3",sa_date,
+                                                 ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 )))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(PSI_1=ifelse(PSI_1==6, NA, ifelse(PSI_1==1, 5, ifelse(PSI_1==2, 4, 
+               ifelse(PSI_1==3, 3, ifelse(PSI_1==4, 2, ifelse(PSI_1==5, 1, NA)))))), 
+         PSI_2=ifelse(PSI_2==6, NA, ifelse(PSI_2==1, 5, ifelse(PSI_2==2, 4, 
+               ifelse(PSI_2==3, 3, ifelse(PSI_2==4, 2, ifelse(PSI_2==5, 1, NA)))))),
+         PSI_3=ifelse(PSI_3==6, NA, ifelse(PSI_3==1, 5, ifelse(PSI_3==2, 4, 
+               ifelse(PSI_3==3, 3, ifelse(PSI_3==4, 2, ifelse(PSI_3==5, 1, NA)))))),               
+         PSI_4=ifelse(PSI_4==6, NA, ifelse(PSI_4==1, 5, ifelse(PSI_4==2, 4, 
+               ifelse(PSI_4==3, 3, ifelse(PSI_4==4, 2, ifelse(PSI_4==5, 1, NA)))))),                        PSI_5=ifelse(PSI_5==6, NA, ifelse(PSI_5==1, 5, ifelse(PSI_5==2, 4, 
+               ifelse(PSI_5==3, 3, ifelse(PSI_5==4, 2, ifelse(PSI_5==5, 1, NA)))))),  
+         PSI_6=ifelse(PSI_6==6, NA, ifelse(PSI_6==1, 5, ifelse(PSI_6==2, 4, 
+               ifelse(PSI_6==3, 3, ifelse(PSI_6==4, 2, ifelse(PSI_6==5, 1, NA)))))),      
+         PSI_7=ifelse(PSI_7==6, NA, ifelse(PSI_7==1, 5, ifelse(PSI_7==2, 4, 
+               ifelse(PSI_7==3, 3, ifelse(PSI_7==4, 2, ifelse(PSI_7==5, 1, NA)))))),
+         PSI_8=ifelse(PSI_8==6, NA, ifelse(PSI_8==1, 5, ifelse(PSI_8==2, 4, 
+               ifelse(PSI_8==3, 3, ifelse(PSI_8==4, 2, ifelse(PSI_8==5, 1, NA)))))),      
+         PSI_9=ifelse(PSI_9==6, NA, ifelse(PSI_9==1, 5, ifelse(PSI_9==2, 4, 
+               ifelse(PSI_9==3, 3, ifelse(PSI_9==4, 2, ifelse(PSI_9==5, 1, NA)))))),    
+         PSI_10=ifelse(PSI_10==6, NA, ifelse(PSI_10==1, 5, ifelse(PSI_10==2, 4, 
+               ifelse(PSI_10==3, 3, ifelse(PSI_10==4, 2, ifelse(PSI_10==5, 1, NA)))))),
+         PSI_11=ifelse(PSI_11==6, NA, ifelse(PSI_11==1, 5, ifelse(PSI_11==2, 4, 
+               ifelse(PSI_11==3, 3, ifelse(PSI_11==4, 2, ifelse(PSI_11==5, 1, NA)))))), 
+         PSI_12=ifelse(PSI_12==6, NA, ifelse(PSI_12==1, 5, ifelse(PSI_12==2, 4, 
+               ifelse(PSI_12==3, 3, ifelse(PSI_12==4, 2, ifelse(PSI_12==5, 1, NA)))))),
+         PSI_13=ifelse(PSI_13==6, NA, ifelse(PSI_13==1, 5, ifelse(PSI_13==2, 4, 
+               ifelse(PSI_13==3, 3, ifelse(PSI_13==4, 2, ifelse(PSI_13==5, 1, NA)))))),            
+         PSI_14=ifelse(PSI_14==6, NA, ifelse(PSI_14==1, 5, ifelse(PSI_14==2, 4, 
+               ifelse(PSI_14==3, 3, ifelse(PSI_14==4, 2, ifelse(PSI_14==5, 1, NA)))))),                        PSI_15=ifelse(PSI_15==6, NA, ifelse(PSI_15==1, 5, ifelse(PSI_15==2, 4, 
+               ifelse(PSI_15==3, 3, ifelse(PSI_15==4, 2, ifelse(PSI_15==5, 1, NA)))))),  
+         PSI_16=ifelse(PSI_16==6, NA, ifelse(PSI_16==1, 5, ifelse(PSI_16==2, 4, 
+               ifelse(PSI_16==3, 3, ifelse(PSI_16==4, 2, ifelse(PSI_16==5, 1, NA)))))),      
+         PSI_17=ifelse(PSI_17==6, NA, ifelse(PSI_17==1, 5, ifelse(PSI_17==2, 4, 
+               ifelse(PSI_17==3, 3, ifelse(PSI_17==4, 2, ifelse(PSI_17==5, 1, NA)))))),
+         PSI_18=ifelse(PSI_18==6, NA, ifelse(PSI_18==1, 5, ifelse(PSI_18==2, 4, 
+               ifelse(PSI_18==3, 3, ifelse(PSI_18==4, 2, ifelse(PSI_18==5, 1, NA)))))),      
+         PSI_19=ifelse(PSI_19==6, NA, ifelse(PSI_19==1, 5, ifelse(PSI_19==2, 4, 
+               ifelse(PSI_19==3, 3, ifelse(PSI_19==4, 2, ifelse(PSI_19==5, 1, NA)))))),    
+         PSI_20=ifelse(PSI_20==6, NA, ifelse(PSI_20==1, 5, ifelse(PSI_20==2, 4, 
+               ifelse(PSI_20==3, 3, ifelse(PSI_20==4, 2, ifelse(PSI_20==5, 1, NA)))))), 
+         PSI_21=ifelse(PSI_21==6, NA, ifelse(PSI_21==1, 5, ifelse(PSI_21==2, 4, 
+               ifelse(PSI_21==3, 3, ifelse(PSI_21==4, 2, ifelse(PSI_21==5, 1, NA)))))),
+         PSI_22=ifelse(PSI_22==2, NA, ifelse(PSI_22==7, 1, ifelse(PSI_22==6, 2, 
+               ifelse(PSI_22==3, 3, ifelse(PSI_22==4, 5, ifelse(PSI_22==5, 4, NA)))))),  
+         PSI_23=ifelse(PSI_23==6, NA, ifelse(PSI_23==1, 5, ifelse(PSI_23==2, 4, 
+               ifelse(PSI_23==3, 3, ifelse(PSI_23==4, 2, ifelse(PSI_23==5, 1, NA)))))),            
+         PSI_24=ifelse(PSI_24==6, NA, ifelse(PSI_24==1, 5, ifelse(PSI_24==2, 4, 
+               ifelse(PSI_24==3, 3, ifelse(PSI_24==4, 2, ifelse(PSI_24==5, 1, NA)))))),
+         PSI_25=ifelse(PSI_25==6, NA, ifelse(PSI_25==1, 5, ifelse(PSI_25==2, 4, 
+               ifelse(PSI_25==3, 3, ifelse(PSI_25==4, 2, ifelse(PSI_25==5, 1, NA)))))),  
+         PSI_26=ifelse(PSI_26==6, NA, ifelse(PSI_26==1, 5, ifelse(PSI_26==2, 4, 
+               ifelse(PSI_26==3, 3, ifelse(PSI_26==4, 2, ifelse(PSI_26==5, 1, NA)))))),      
+         PSI_27=ifelse(PSI_27==6, NA, ifelse(PSI_27==1, 5, ifelse(PSI_27==2, 4, 
+               ifelse(PSI_27==3, 3, ifelse(PSI_27==4, 2, ifelse(PSI_27==5, 1, NA)))))),
+         PSI_28=ifelse(PSI_28==6, NA, ifelse(PSI_28==1, 5, ifelse(PSI_28==2, 4, 
+               ifelse(PSI_28==3, 3, ifelse(PSI_28==4, 2, ifelse(PSI_28==5, 1, NA)))))),      
+         PSI_29=ifelse(PSI_29==6, NA, ifelse(PSI_29==1, 5, ifelse(PSI_29==2, 4, 
+               ifelse(PSI_29==3, 3, ifelse(PSI_29==4, 2, ifelse(PSI_29==5, 1, NA)))))),    
+         PSI_30=ifelse(PSI_30==6, NA, ifelse(PSI_30==1, 5, ifelse(PSI_30==2, 4, 
+               ifelse(PSI_30==3, 3, ifelse(PSI_30==4, 2, ifelse(PSI_30==5, 1, NA)))))), 
+         PSI_31=ifelse(PSI_31==6, NA, ifelse(PSI_31==1, 5, ifelse(PSI_31==2, 4, 
+               ifelse(PSI_31==3, 3, ifelse(PSI_31==4, 2, ifelse(PSI_31==5, 1, NA)))))),
+         PSI_32=ifelse(PSI_32==1, NA, ifelse(PSI_32==4, 5, ifelse(PSI_32==5, 4, 
+               ifelse(PSI_32==3, 3, ifelse(PSI_32==6, 2, ifelse(PSI_32==2, 1, NA)))))),  
+         PSI_33=ifelse(PSI_33==6, NA, ifelse(PSI_33==1, 5, ifelse(PSI_33==2, 4, 
+               ifelse(PSI_33==3, 3, ifelse(PSI_33==4, 2, ifelse(PSI_33==5, 1, NA)))))),     
+         PSI_34=ifelse(PSI_34==6, NA, ifelse(PSI_34==1, 5, ifelse(PSI_34==2, 4, 
+               ifelse(PSI_34==3, 3, ifelse(PSI_34==4, 2, ifelse(PSI_34==5, 1, NA)))))),
+         PSI_35=ifelse(PSI_35==6, NA, ifelse(PSI_35==1, 5, ifelse(PSI_35==2, 4, 
+               ifelse(PSI_35==3, 3, ifelse(PSI_35==4, 2, ifelse(PSI_35==5, 1, NA)))))),
+         PSI_36=ifelse(PSI_36==6, NA, ifelse(PSI_36==1, 5, ifelse(PSI_36==2, 4, 
+               ifelse(PSI_36==3, 3, ifelse(PSI_36==4, 2, ifelse(PSI_36==5, 1, NA))))))) %>% 
+  mutate(PSI_N=36,
+         PSI_missing=rowSums(is.na(cbind(PSI_1, PSI_2, PSI_3, PSI_4, PSI_5, PSI_6, 
+                                         PSI_7, PSI_8, PSI_9, PSI_10, PSI_11, PSI_12, 
+                                         PSI_13, PSI_14, PSI_15, PSI_16, PSI_17, PSI_18, 
+                                         PSI_19, PSI_20, PSI_21, PSI_22, PSI_23, PSI_24, 
+                                         PSI_25, PSI_26, PSI_27, PSI_28, PSI_29, PSI_30, 
+                                         PSI_31, PSI_32, PSI_33, PSI_34, PSI_35, PSI_36))),
+         PSI_missing_perc=100*(rowSums(is.na(cbind(PSI_1, PSI_2, PSI_3, PSI_4, PSI_5, PSI_6, 
+                                         PSI_7, PSI_8, PSI_9, PSI_10, PSI_11, PSI_12, 
+                                         PSI_13, PSI_14, PSI_15, PSI_16, PSI_17, PSI_18, 
+                                         PSI_19, PSI_20, PSI_21, PSI_22, PSI_23, PSI_24, 
+                                         PSI_25, PSI_26, PSI_27, PSI_28, PSI_29, PSI_30, 
+                                         PSI_31, PSI_32, PSI_33, PSI_34, PSI_35, PSI_36)))/36),
+         PSI_PD_subscale_total=rowSums(cbind(PSI_1, PSI_2, PSI_3, PSI_4, PSI_5, PSI_6, 
+                                       PSI_7, PSI_8, PSI_9, PSI_10, PSI_11, PSI_12), na.rm = F),
+         PSI_PD_subscale_mean=rowMeans(cbind(PSI_1, PSI_2, PSI_3, PSI_4, PSI_5, PSI_6, 
+                                       PSI_7, PSI_8, PSI_9, PSI_10, PSI_11, PSI_12), na.rm = T),
+         PSI_PCDI_subscale_total=rowSums(cbind(PSI_13, PSI_14, PSI_15, PSI_16, PSI_17, PSI_18, 
+                                       PSI_19, PSI_20, PSI_21, PSI_22, PSI_23, PSI_24), na.rm = F),
+         PSI_PCDI_subscale_mean=rowMeans(cbind(PSI_13, PSI_14, PSI_15, PSI_16, PSI_17, PSI_18, 
+                                       PSI_19, PSI_20, PSI_21, PSI_22, PSI_23, PSI_24), na.rm = T),
+         PSI_DC_subscale_total=rowSums(cbind(PSI_25, PSI_26, PSI_27, PSI_28, PSI_29, PSI_30, 
+                                       PSI_31, PSI_32, PSI_33, PSI_34, PSI_35, PSI_36), na.rm = F),
+         PSI_DC_subscale_mean=rowMeans(cbind(PSI_25, PSI_26, PSI_27, PSI_28, PSI_29, PSI_30, 
+                                       PSI_31, PSI_32, PSI_33, PSI_34, PSI_35, PSI_36), na.rm = T),
+         PSI_TS_total=rowSums(cbind(PSI_PD_subscale_total, PSI_PCDI_subscale_total, 
+                                    PSI_DC_subscale_total), na.rm = F), 
+         PSI_TS_mean=rowMeans(cbind(PSI_PD_subscale_mean, PSI_PCDI_subscale_mean, 
+                                    PSI_DC_subscale_mean), na.rm = F))
+
+## Save it
+PSI_Wave1_TAG2_outdf <- PSI_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PSI_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/PSI_Wave1_TAG2.csv"))
+
+PSI_Wave2_outdf <- PSI_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid))
+write.csv(PSI_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PSI_Wave2.csv"))
+
+PSI_Wave2_TAG2_outdf <- PSI_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PSI_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/PSI_Wave2_TAG2.csv"))
+
+PSI_Wave3_outdf <- PSI_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(PSI_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PSI_Wave3.csv"))
+
+PSI_Wave3_TAG2_outdf <- PSI_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(PSI_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/PSI_Wave3_TAG2.csv"))
+
+PSI_Wave4_outdf <- PSI_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(PSI_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/PSI_Wave4.csv"))
+
+PSI_Wave5_outdf <- PSI_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(PSI_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/PSI_Wave5.csv"))
+
+PSI_Wave6_outdf <- PSI_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(PSI_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/PSI_Wave6.csv"))
+```
