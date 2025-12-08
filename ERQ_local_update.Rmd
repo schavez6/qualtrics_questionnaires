@@ -1,0 +1,79 @@
+Prepare ERQ
+```{r}
+ERQ<-left_join(filter(cleaned_survey_data, grepl("ERQ",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>% 
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")
+
+ERQ_Wave1<-left_join(ERQ,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 1 - V1",sa_date,
+                            ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                                 ))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  mutate(ERQ_reappraisal_N=6,
+         ERQ_reappraisal_missing=rowSums(is.na(cbind(ERQ_1, ERQ_3, ERQ_5, ERQ_7, ERQ_8, ERQ_10))),
+         ERQ_reappraisal_missing_perc=100*(rowSums(is.na(cbind(ERQ_1, ERQ_3, ERQ_5, ERQ_7, ERQ_8, ERQ_10)))/6),
+         ERQ_reappraisal_mean=round(rowMeans(cbind(ERQ_1, ERQ_3, ERQ_5, ERQ_7, ERQ_8, ERQ_10), na.rm=T),3),
+         ERQ_reappraisal_total=rowSums(cbind(ERQ_1, ERQ_3, ERQ_5, ERQ_7, ERQ_8, ERQ_10), na.rm=F),
+         ERQ_suppression_N=4,
+         ERQ_suppression_missing=rowSums(is.na(cbind(ERQ_2, ERQ_4, ERQ_6, ERQ_9))),
+         ERQ_suppression_missing_perc=100*(rowSums(is.na(cbind(ERQ_2, ERQ_4, ERQ_6, ERQ_9)))/4),
+         ERQ_suppression_mean=round(rowMeans(cbind(ERQ_2, ERQ_4, ERQ_6, ERQ_9),na.rm=T),3),
+         ERQ_suppression_total=rowSums(cbind(ERQ_2, ERQ_4, ERQ_6, ERQ_9),na.rm=F))
+
+################
+ERQ_Wave1_outdf$wave <- 1
+ERQ_Wave1_TAG2_outdf$wave <- 1
+ERQ_Wave2_outdf$wave <- 2
+ERQ_Wave2_TAG2_outdf$wave <- 2
+ERQ_Wave3_outdf$wave <- 3
+ERQ_Wave3_TAG2_outdf$wave <- 3
+ERQ_Wave4_outdf$wave <- 4
+ERQ_Wave5_outdf$wave <- 5
+ERQ_Wave6_outdf$wave <- 6
+
+ERQ_alldata <- rbind(ERQ_Wave1_outdf,ERQ_Wave2_outdf,ERQ_Wave3_outdf,ERQ_Wave4_outdf,
+                      ERQ_Wave5_outdf,ERQ_Wave6_outdf,ERQ_Wave1_TAG2_outdf,
+                      ERQ_Wave2_TAG2_outdf,ERQ_Wave3_TAG2_outdf)
+
+ERQ_alldata <- ERQ_alldata[with(ERQ_alldata, order(tagid, survey_date)),]
+ERQ_alldata <- ERQ_alldata %>% relocate(tagid, wave, survey_date)
+write.csv(ERQ_alldata, file = paste0(workdir,"Qualtrics_Output/Long/ERQ_AllObs_Chronological.csv"))
+
+
+## Save it
+ERQ_Wave1_outdf <- ERQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+ERQ_Wave1_TAG2_outdf <- ERQ_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(ERQ_Wave1_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/ERQ_Wave1.csv"))
+write.csv(ERQ_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/ERQ_Wave1_TAG2.csv"))
+
+ERQ_Wave2_outdf <- ERQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(ERQ_Wave2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/ERQ_Wave2.csv"))
+
+ERQ_Wave2_TAG2_outdf <- ERQ_Wave1 %>% filter(grepl("W2",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(ERQ_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/ERQ_Wave2_TAG2.csv"))
+
+ERQ_Wave3_outdf <- ERQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(ERQ_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/ERQ_Wave3.csv"))
+
+ERQ_Wave3_TAG2_outdf <- ERQ_Wave1 %>% filter(grepl("W3",survey_name)) %>% filter(!grepl("TAG0|TAG1|TAG2",tagid)) 
+write.csv(ERQ_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/ERQ_Wave3_TAG2.csv"))
+
+ERQ_Wave4_outdf <- ERQ_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(ERQ_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/ERQ_Wave4.csv"))
+
+ERQ_Wave5_outdf <- ERQ_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(ERQ_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/ERQ_Wave5.csv"))
+
+ERQ_Wave6_outdf <- ERQ_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(ERQ_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/ERQ_Wave6.csv"))
+```
