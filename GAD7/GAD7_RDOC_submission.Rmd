@@ -1,0 +1,35 @@
+```{r}
+## Make RDOC ready file
+ndar_cde_gad701_data <- left_join(GAD7_Wave4,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         gad7_1=GAD7_1,
+         gad7_2=GAD7_2,
+         gad7_3=GAD7_3,
+         gad7_4=GAD7_4,
+         gad7_5=GAD7_5,
+         gad7_6=GAD7_6,
+         gad7_7=GAD7_7,
+         gad7_8="1"
+  )
+ndar_cde_gad701_data <- left_join(ndar_key,ndar_cde_gad701_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("GAD",ignore.case = FALSE),-dob,-survey_date,-survey_type,-survey_name,-tagid,-anontagid,-ID,-guid)
+cde_gad701_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/cde_gad701_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+cde_gad701_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/cde_gad701_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+cde_gad701_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/cde_gad701_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+cde_gad701_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/cde_gad701_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+cde_gad701_temp_df<-data.frame(cde_gad701_temp)
+ndar_cde_gad701_data<-rbind(cde_gad701_temp_df,ndar_cde_gad701_data)
+
+part2<-colnames(ndar_cde_gad701_data)
+part3<-as.matrix(ndar_cde_gad701_data)
+colnames(part3)<-NULL
+together<-rbind(cde_gad701_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2025/cde_gad701.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+```
