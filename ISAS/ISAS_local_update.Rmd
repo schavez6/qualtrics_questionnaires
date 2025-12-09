@@ -1,0 +1,58 @@
+Prepare ISAS # Do not submit to RDOC
+```{r}
+ISAS<-left_join(filter(cleaned_survey_data, grepl("ISAS",item)) %>%
+                 #mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")         
+
+ISAS_Wave1<-left_join(ISAS,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+## Save it
+ISAS_Wave1_TAG2_outdf <- ISAS_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|ACE",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(ISAS_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/ISAS_Wave1_TAG2.csv"))
+
+ISAS_Wave2_TAG2_outdf <- ISAS_Wave1 %>% filter(grepl("W2",survey_name))  %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(ISAS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/ISAS_Wave2_TAG2.csv"))
+
+ISAS_Wave3_outdf <- ISAS_Wave1 %>% filter(grepl("W3",survey_name))  %>% 
+  filter(!grepl("TAG3|TAG4",tagid)) 
+write.csv(ISAS_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/ISAS_Wave3.csv"))
+
+ISAS_Wave3_TAG2_outdf <- ISAS_Wave1 %>% filter(grepl("W3",survey_name))  %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(ISAS_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/ISAS_Wave3_TAG2.csv"))
+
+ISAS_Wave4_outdf <- ISAS_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(ISAS_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/ISAS_Wave4.csv"))
+
+ISAS_Wave5_outdf <- ISAS_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(ISAS_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/ISAS_Wave5.csv"))
+
+ISAS_Wave6_outdf <- ISAS_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(ISAS_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/ISAS_Wave6.csv"))
+
+ISAS_WaveACE1_outdf <- ISAS_Wave1 %>% filter(grepl("Month 1",survey_name)) 
+write.csv(ISAS_WaveACE1_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE1/ISAS_WaveACE1.csv"))
+
+ISAS_WaveACE2_outdf <- ISAS_Wave1 %>% filter(grepl("Month 2",survey_name)) 
+write.csv(ISAS_WaveACE2_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE2/ISAS_WaveACE2.csv"))
+
+ISAS_WaveACE3_outdf <- ISAS_Wave1 %>% filter(grepl("Month 3",survey_name)) 
+write.csv(ISAS_WaveACE3_outdf, file = paste0(workdir,"Qualtrics_Output/WaveACE3/ISAS_WaveACE3.csv"))
+```
