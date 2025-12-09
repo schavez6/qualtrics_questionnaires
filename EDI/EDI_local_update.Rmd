@@ -1,0 +1,30 @@
+Prepare EDI # Do not submit to RDOC
+```{r}
+EDI<-left_join(filter(cleaned_survey_data, grepl("EDI",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")         
+
+EDI_Wave1<-left_join(EDI,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+## Save it
+EDI_Wave3_outdf <- EDI_Wave1 %>% filter(grepl("W3",survey_name)) 
+write.csv(EDI_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/EDI_Wave3.csv"))
+
+EDI_Wave4_outdf <- EDI_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(EDI_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/EDI_Wave4.csv")) 
+```
