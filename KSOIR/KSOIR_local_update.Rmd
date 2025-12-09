@@ -1,0 +1,65 @@
+Prepare K-SOIR # Do not submit to RDOC
+```{r}
+KSOIR<-left_join(filter(cleaned_survey_data, grepl("SOIR",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")         
+
+KSOIR_Wave1<-left_join(KSOIR,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+KSOIR_Wave1 <- KSOIR_Wave1 %>% 
+  mutate(K_SOIR_1=ifelse(is.na(K_SOIR_1),`K-SOIR_1`,K_SOIR_1),
+         K_SOIR_2=ifelse(is.na(K_SOIR_2),`K-SOIR_2`,K_SOIR_2),
+         K_SOIR_3=K_SOIR_3,
+         K_SOIR_4=ifelse(is.na(K_SOIR_4),`K-SOIR_4`,K_SOIR_4),
+         K_SOIR_5=ifelse(is.na(K_SOIR_5),`K-SOIR_5`,K_SOIR_5),
+         K_SOIR_6=ifelse(is.na(K_SOIR_6),`K-SOIR_6`,K_SOIR_6),
+         K_SOIR_7=ifelse(is.na(K_SOIR_7),`K-SOIR_7`,K_SOIR_7),
+         K_SOIR_8=ifelse(is.na(K_SOIR_8),`K-SOIR_8`,K_SOIR_8),
+         K_SOIR_9=ifelse(is.na(K_SOIR_9),`K-SOIR_9`,K_SOIR_9),
+         K_SOIR_10=ifelse(is.na(K_SOIR_10),`K-SOIR_10`,K_SOIR_10),
+         K_SOIR_11=ifelse(is.na(K_SOIR_11),`K-SOIR_11`,K_SOIR_11),
+         K_SOIR_12=`K-SOIR_12`) %>% 
+  dplyr::select(-`K-SOIR_1`,-`K-SOIR_2`,-`K-SOIR_4`,-`K-SOIR_5`,-`K-SOIR_6`,
+                -`K-SOIR_7`,-`K-SOIR_8`,-`K-SOIR_9`,-`K-SOIR_10`,-`K-SOIR_11`,-`K-SOIR_12`)
+
+## Save it
+KSOIR_Wave1_TAG2_outdf <- KSOIR_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6|SOS",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid)) %>% dplyr::select(-K_SOIR_12)
+write.csv(KSOIR_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/KSOIR_Wave1_TAG2.csv"))
+
+KSOIR_Wave2_TAG2_outdf <- KSOIR_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid)) %>% dplyr::select(-K_SOIR_12)
+write.csv(KSOIR_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/KSOIR_Wave2_TAG2.csv"))
+
+#not yet...
+KSOIR_Wave3_TAG2_outdf <- KSOIR_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid)) %>% dplyr::select(-K_SOIR_12)
+#write.csv(KSOIR_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/KSOIR_Wave3_TAG2.csv"))
+
+KSOIR_Wave4_outdf <- KSOIR_Wave1 %>% filter(grepl("W4",survey_name)) %>% dplyr::select(-K_SOIR_12)
+write.csv(KSOIR_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/KSOIR_Wave4.csv"))
+
+KSOIR_Wave5_outdf <- KSOIR_Wave1 %>% filter(grepl("W5",survey_name)) %>% dplyr::select(-K_SOIR_12)
+write.csv(KSOIR_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/KSOIR_Wave5.csv"))
+
+KSOIR_Wave6_outdf <- KSOIR_Wave1 %>% filter(grepl("W6",survey_name)) %>% dplyr::select(-K_SOIR_12)
+write.csv(KSOIR_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/KSOIR_Wave6.csv"))
+
+KSOIR_WaveSOS_outdf <- KSOIR_Wave1 %>% filter(grepl("SOS",survey_name)) %>% dplyr::select(-K_SOIR_3)
+write.csv(KSOIR_WaveSOS_outdf, file = paste0(workdir,"Qualtrics_Output/WaveSOS/KSOIR_WaveSOS.csv"))
+```
