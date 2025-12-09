@@ -1,0 +1,46 @@
+Prepare SRASBM # Do not submit to RDOC
+```{r}
+SRASBM<-left_join(filter(cleaned_survey_data, grepl("SRASBM",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")         
+
+SRASBM_Wave1<-left_join(SRASBM,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+## Save it
+SRASBM_Wave1_TAG2_outdf <- SRASBM_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SRASBM_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/SRASBM_Wave1_TAG2.csv"))
+
+SRASBM_Wave2_TAG2_outdf <- SRASBM_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(SRASBM_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/SRASBM_Wave2_TAG2.csv"))
+
+#not yet...
+SRASBM_Wave3_TAG2_outdf <- SRASBM_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(SRASBM_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/SRASBM_Wave3_TAG2.csv"))
+
+SRASBM_Wave4_outdf <- SRASBM_Wave1 %>% filter(grepl("W4",survey_name)) 
+write.csv(SRASBM_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/SRASBM_Wave4.csv"))
+
+SRASBM_Wave5_outdf <- SRASBM_Wave1 %>% filter(grepl("W5",survey_name)) 
+write.csv(SRASBM_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/SRASBM_Wave5.csv"))
+
+SRASBM_Wave6_outdf <- SRASBM_Wave1 %>% filter(grepl("W6",survey_name)) 
+write.csv(SRASBM_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/SRASBM_Wave6.csv"))
+```
