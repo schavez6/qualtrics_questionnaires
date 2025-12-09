@@ -1,0 +1,50 @@
+Prepare CUDIT # Do not submit to RDOC
+```{r}
+CUDIT<-left_join(filter(cleaned_survey_data, grepl("CUDIT",item)) %>%
+                 mutate(value=as.numeric(value)) %>% 
+                 filter(!is.na(value)) %>%
+                 filter(!value=="") %>%
+                 distinct(tagid,item,value,survey_name,.keep_all = FALSE) %>%
+                 spread(item,value),
+               redcap_cleaned %>%
+                 filter(!is.na(dob),!is.na(sa_date)) %>%
+                 dplyr::select(tagid, sa_date, sb_date, dob),by="tagid")         
+
+CUDIT_Wave1<-left_join(CUDIT,survey_date, by = c("tagid","survey_name")) %>% 
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(qualtrics_date=value) %>%
+  dplyr::select(-value)%>%
+  mutate(survey_date=ifelse(survey_name=="TAG - Sess 2 - V1",sb_date,
+                            ifelse(survey_name=="TAG - Sess 2 - V2",sb_date,
+                                   ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
+                                          ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
+                                          ))))) %>%
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+
+## Save it
+CUDIT_Wave1_TAG2_outdf <- CUDIT_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CUDIT_Wave1_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave1/CUDIT_Wave1_TAG2.csv"))
+
+CUDIT_Wave2_TAG2_outdf <- CUDIT_Wave1 %>% filter(grepl("W2",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+write.csv(CUDIT_Wave2_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave2/CUDIT_Wave2_TAG2.csv"))
+
+CUDIT_Wave3_outdf <- CUDIT_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG3|TAG4",tagid))
+write.csv(CUDIT_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CUDIT_Wave3.csv"))
+
+#not yet...
+CUDIT_Wave3_TAG2_outdf <- CUDIT_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
+  filter(!grepl("TAG0|TAG1|TAG2",tagid))
+#write.csv(CUDIT_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/CUDIT_Wave3_TAG2.csv"))
+
+CUDIT_Wave4_outdf <- CUDIT_Wave1 %>% filter(grepl("W4",survey_name))
+write.csv(CUDIT_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/CUDIT_Wave4.csv"))
+
+CUDIT_Wave5_outdf <- CUDIT_Wave1 %>% filter(grepl("W5",survey_name))
+write.csv(CUDIT_Wave5_outdf, file = paste0(workdir,"Qualtrics_Output/Wave5/CUDIT_Wave5.csv"))
+
+CUDIT_Wave6_outdf <- CUDIT_Wave1 %>% filter(grepl("W6",survey_name))
+write.csv(CUDIT_Wave6_outdf, file = paste0(workdir,"Qualtrics_Output/Wave6/CUDIT_Wave6.csv"))
+```
