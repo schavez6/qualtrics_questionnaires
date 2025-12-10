@@ -1,2 +1,4 @@
 Run these scripts prior to running scripts in questionnaire-specific folders.
-If the goal is only to update our local cas files, deploy 
+If the goal is only to update our local cas files, deploy:
+  1. Raw_Data_Pull.Rmd
+  2. Redcap_
