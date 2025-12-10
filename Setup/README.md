@@ -11,4 +11,5 @@ Deploy the raw data pull script, followed by the 'long' export script.
 If the goal is to complile a data package for NDA upload, follow these steps:
   1. Raw_Data_Pull.Rmd
   2. Redcap_Setup.Rmd
-  3. 
+  3. NDA_Submission_Setup/Guid_Prep.Rmd
+  4. NDA_Submission_Setup/
