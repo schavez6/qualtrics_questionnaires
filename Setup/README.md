@@ -8,4 +8,7 @@ If the goal is only to update our local cas files, deploy:
 If the goal is to update the daily surveys, use the DSR folder to avoid overriding duplicates from the same wave.
 Deploy the raw data pull script, followed by the 'long' export script.
 
-If the goal is to complile a data package for NDA upload, after step 2 above, deploy 
+If the goal is to complile a data package for NDA upload, follow these steps:
+  1. Raw_Data_Pull.Rmd
+  2. Redcap_Setup.Rmd
+  3. 
