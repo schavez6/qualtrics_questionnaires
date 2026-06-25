@@ -19,7 +19,66 @@ AUDIT_Wave1<-left_join(AUDIT,survey_date, by = c("tagid","survey_name")) %>%
                                    ifelse(survey_name=="TAG - Sess 2 - V3 - Current",sb_date,
                                           ifelse(survey_name=="Sensitive Q's for 042",sb_date,as.character(qualtrics_date)
                                           ))))) %>%
-  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob)
+  dplyr::select(-qualtrics_date,-sb_date,-sa_date,-dob) %>%
+  distinct(tagid,survey_name,.keep_all = TRUE) %>%
+  mutate(AUDIT_1=ifelse(AUDIT_1==1,0,
+                         ifelse(AUDIT_1==2,1,
+                                ifelse(AUDIT_1==3,2,
+                                       ifelse(AUDIT_1==4,3,
+                                              ifelse(AUDIT_1==5,4,
+                                                     AUDIT_1))))),
+         AUDIT_2=ifelse(AUDIT_2==1,0,
+                         ifelse(AUDIT_2==2,1,
+                                ifelse(AUDIT_2==3,2,
+                                       ifelse(AUDIT_2==4,3,
+                                              ifelse(AUDIT_2==5,4,
+                                                     AUDIT_2))))),
+         AUDIT_3=ifelse(AUDIT_3==1,0,
+                         ifelse(AUDIT_3==2,1,
+                                ifelse(AUDIT_3==3,2,
+                                       ifelse(AUDIT_3==4,3,
+                                              ifelse(AUDIT_3==5,4,
+                                                     AUDIT_3))))),
+         AUDIT_4=ifelse(AUDIT_4==1,0,
+                         ifelse(AUDIT_4==2,1,
+                                ifelse(AUDIT_4==3,2,
+                                       ifelse(AUDIT_4==4,3,
+                                              ifelse(AUDIT_4==5,4,
+                                                     AUDIT_4))))),
+         AUDIT_5=ifelse(AUDIT_5==1,0,
+                         ifelse(AUDIT_5==2,1,
+                                ifelse(AUDIT_5==3,2,
+                                       ifelse(AUDIT_5==4,3,
+                                              ifelse(AUDIT_5==5,4,
+                                                     AUDIT_5))))),
+         AUDIT_6=ifelse(AUDIT_6==1,0,
+                         ifelse(AUDIT_6==2,1,
+                                ifelse(AUDIT_6==3,2,
+                                       ifelse(AUDIT_6==4,3,
+                                              ifelse(AUDIT_6==5,4,
+                                                     AUDIT_6))))),
+         AUDIT_7=ifelse(AUDIT_7==1,0,
+                         ifelse(AUDIT_7==2,1,
+                                ifelse(AUDIT_7==3,2,
+                                       ifelse(AUDIT_7==4,3,
+                                              ifelse(AUDIT_7==5,4,
+                                                     AUDIT_7))))),
+         AUDIT_8=ifelse(AUDIT_8==1,0,
+                         ifelse(AUDIT_8==2,1,
+                                ifelse(AUDIT_8==3,2,
+                                       ifelse(AUDIT_8==4,3,
+                                              ifelse(AUDIT_8==5,4,
+                                                     AUDIT_8))))),
+         AUDIT_9=ifelse(AUDIT_9==1,0,
+                         ifelse(AUDIT_9==2,2,
+                                ifelse(AUDIT_9==5,4,AUDIT_9))),
+         AUDIT_10=ifelse(AUDIT_10==1,0,
+                         ifelse(AUDIT_10==3,2,
+                                ifelse(AUDIT_10==5,4,AUDIT_10)))) %>%
+  mutate(AUDIT_total=rowSums(cbind(AUDIT_1, AUDIT_2, AUDIT_3, 
+                                   AUDIT_4, AUDIT_5, AUDIT_6, 
+                                   AUDIT_7, AUDIT_8, AUDIT_9, 
+                                   AUDIT_10), na.rm=F))
 
 ## Save it
 AUDIT_Wave1_TAG2_outdf <- AUDIT_Wave1 %>% filter(!grepl("W2|W3|W4|W5|W6",survey_name)) %>% 
@@ -34,10 +93,9 @@ AUDIT_Wave3_outdf <- AUDIT_Wave1 %>% filter(grepl("W3",survey_name)) %>%
   filter(!grepl("TAG3|TAG4",tagid)) 
 write.csv(AUDIT_Wave3_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/AUDIT_Wave3.csv"))
 
-#not yet...
 AUDIT_Wave3_TAG2_outdf <- AUDIT_Wave1 %>% filter(grepl("W3",survey_name)) %>% 
   filter(!grepl("TAG0|TAG1|TAG2",tagid))
-#write.csv(AUDIT_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/AUDIT_Wave3_TAG2.csv"))
+write.csv(AUDIT_Wave3_TAG2_outdf, file = paste0(workdir,"Qualtrics_Output/Wave3/AUDIT_Wave3_TAG2.csv"))
 
 AUDIT_Wave4_outdf <- AUDIT_Wave1 %>% filter(grepl("W4",survey_name)) 
 write.csv(AUDIT_Wave4_outdf, file = paste0(workdir,"Qualtrics_Output/Wave4/AUDIT_Wave4.csv"))
