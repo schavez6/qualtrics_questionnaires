@@ -1,0 +1,40 @@
+```{r}
+## Make RDOC ready file
+ndar_audit_data <- left_join(AUDIT_Wave1,distinct(redcap_cleaned, tagid, dob),by="tagid") %>%
+  mutate(interview_date=paste0(sprintf("%02d",month(survey_date)),"/",sprintf("%02d",day(survey_date)),"/",year(survey_date)),
+         interview_age=round((interval(start =dob, end = survey_date) / duration(num = 1, units = "months")),0),
+         sex="F",
+         audit1=AUDIT_1,
+         audit2=AUDIT_2,
+         audit3=AUDIT_3,
+         audit4=AUDIT_4,
+         audit5=AUDIT_5,
+         audit6=AUDIT_6,
+         audit7=AUDIT_7,
+         audit8=AUDIT_8,
+         audit9=AUDIT_9,
+         audit10=AUDIT_10,
+         alcq=AUDIT_total
+  )
+ndar_audit_data <- left_join(ndar_key,ndar_audit_data, by="tagid") %>%
+  mutate(src_subject_id=anontagid,
+         subjectkey=guid) %>%
+  filter(!is.na(subjectkey),
+         !interview_age=="") %>%
+  select(-contains("AUDIT",ignore.case = FALSE),-dob,-survey_date,-survey_type,-survey_name,-tagid,-anontagid,-ID,-guid)
+audit_df_header<-rep(NA,length(read.csv(paste0(workdir,"RDoCdb/templates/audit01_template.csv"), header = FALSE, stringsAsFactors = FALSE)))
+audit_df_header[1]<-read.csv(paste0(workdir,"RDoCdb/templates/audit01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,1]
+audit_df_header[2]<-read.csv(paste0(workdir,"RDoCdb/templates/audit01_template.csv"), header = FALSE, stringsAsFactors = FALSE)[1,2]
+
+audit_temp<-as.list(read.csv(paste0(workdir,"RDoCdb/templates/audit01_template.csv"), header = TRUE, stringsAsFactors = FALSE, skip=1))
+audit_temp_df<-data.frame(audit_temp)
+ndar_audit_data<-rbind(audit_temp_df,ndar_audit_data)
+
+part2<-colnames(ndar_audit_data)
+part3<-as.matrix(ndar_audit_data)
+colnames(part3)<-NULL
+together<-rbind(audit_df_header,part2,part3)
+write.table(together,file =paste0(workdir,"RDoCdb/output/jul2026/audit01.csv"),sep=",",na = "",row.names=FALSE,col.names=FALSE)
+rm(audit,audit_Wave1,audit_Wave1_means,audit_Wave1_means_graph,audit_Wave1_totals,audit_Wave1_totals_graph,
+   audit_df_header,audit_temp,audit_temp_df,part3,part2,together)
+```
